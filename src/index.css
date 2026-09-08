@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  --primary-color: #d97706; /* Dourado / Amber 600 */
+  --primary-dark: #0f172a;  /* Preto nobre / Slate 900 */
+  --gold-accent: #f59e0b;
+}
+
+@layer base {
+  * {
+    @apply border-slate-200;
+  }
+  
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  h1, h2, h3, .font-luxury {
+    font-family: 'Playfair Display', Georgia, Cambria, 'Times New Roman', serif;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-amber-600/60;
+  }
+}
+
+/* Classes utilitárias para cor dinâmica */
+.bg-primary {
+  background-color: var(--primary-color);
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.border-primary {
+  border-color: var(--primary-color);
+}
+
+.hover\:bg-primary:hover {
+  background-color: var(--primary-color);
+}
+
+.focus\:ring-primary:focus {
+  --tw-ring-color: var(--primary-color);
+}

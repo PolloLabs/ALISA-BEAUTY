@@ -1,0 +1,124 @@
+import { NavLink, useLocation } from 'react-router-dom'
+import { 
+  LayoutDashboard, 
+  Calendar, 
+  CalendarDays,
+  UserCheck,
+  Scissors, 
+  Settings,
+  DollarSign,
+  X,
+  Sparkles,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useSalon } from '@/hooks/useSalon'
+import { getBusinessConfig } from '@/lib/businessConfig'
+
+export interface SidebarProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+const menuItems = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/agenda', label: 'Agenda', icon: Calendar },
+  { to: '/agenda-visual', label: 'Agenda Visual', icon: CalendarDays },
+  { to: '/servicos', label: 'Serviços', icon: Scissors },
+  { to: '/financeiro', label: 'Financeiro', icon: DollarSign },
+  { to: '/equipe', label: 'Equipe', icon: UserCheck },
+  { to: '/configuracoes/salao', label: 'Configurações', icon: Settings },
+]
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const location = useLocation()
+  const { salon } = useSalon()
+
+  const handleNavClick = () => {
+    if (window.innerWidth < 768) {
+      onClose()
+    }
+  }
+
+  const config = getBusinessConfig(salon?.business_type || 'beauty_salon')
+  const LogoIcon = config.icon || Sparkles
+
+  return (
+    <>
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={cn(
+          'fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 md:translate-x-0',
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        {/* Top Header: Logo + Nome do Salão */}
+        <div className="h-16 flex items-center justify-between px-5 border-b border-slate-200/80 bg-white">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="h-9 w-9 rounded-xl bg-slate-900 border border-amber-500/40 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+              {salon?.logo_url ? (
+                <img src={salon.logo_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <LogoIcon className="h-4 w-4 text-amber-400" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="font-luxury font-bold text-slate-900 block truncate text-base tracking-tight leading-none">
+                {salon?.name || 'BelezaFlow'}
+              </span>
+              <span className="text-[10px] uppercase tracking-widest text-amber-600 font-semibold mt-1 block">
+                Gestão Luxo
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="md:hidden h-8 w-8 rounded-lg flex items-center justify-center hover:bg-slate-100 text-slate-500 flex-shrink-0 cursor-pointer"
+            aria-label="Fechar menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Navigation items */}
+        <nav className="flex-1 p-3.5 space-y-1.5 overflow-y-auto">
+          {menuItems.map((item) => {
+            const Icon = item.icon
+            const isActive = location.pathname === item.to || 
+              (item.to === '/configuracoes/salao' && location.pathname.startsWith('/configuracoes'))
+            
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={handleNavClick}
+                className={cn(
+                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 min-h-[44px]',
+                  isActive 
+                    ? 'bg-slate-900 text-amber-400 shadow-sm border border-slate-800' 
+                    : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                )}
+              >
+                <Icon className={cn('h-4 w-4 transition-colors', isActive ? 'text-amber-400' : 'text-slate-400')} />
+                <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
+              </NavLink>
+            )
+          })}
+        </nav>
+
+        {/* Footer info */}
+        <div className="p-4 border-t border-slate-200/80 bg-slate-50/50">
+          <div className="flex items-center justify-between text-[11px] text-slate-500">
+            <span className="font-medium text-slate-700">{config.label}</span>
+            <span className="text-amber-600 font-semibold">• Ativo</span>
+          </div>
+        </div>
+      </aside>
+    </>
+  )
+}
