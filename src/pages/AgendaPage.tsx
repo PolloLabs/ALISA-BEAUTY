@@ -1,64 +1,113 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter } from 'lucide-react'
+import { useState } from 'react'
 import { format, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useAppointments, AppointmentWithDetails } from '@/hooks/useAppointments'
-import { useStaff, StaffMember } from '@/hooks/useStaff'
+import { motion } from 'framer-motion'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Clock,
+  User,
+  Scissors,
+  XCircle,
+  CheckCircle,
+  Plus,
+  Filter,
+} from 'lucide-react'
+import { formatCurrency, formatTime } from '@/lib/formatters'
 import { Card, CardContent } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { SkeletonTable } from '@/components/ui/Skeleton'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { AppointmentCard } from '@/components/appointments/AppointmentCard'
-import { AppointmentTableRow } from '@/components/appointments/AppointmentTableRow'
-import { AppointmentModal } from '@/components/appointments/AppointmentModal'
-import { AppointmentFormData } from '@/components/appointments/AppointmentForm'
-import { formatAppointmentDate } from '@/lib/schedulingEngine'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { cn } from '@/lib/utils'
+
+// DADOS MOCK (em produção, viriam do Supabase)
+const MOCK_APPOINTMENTS = [
+  {
+    id: '1',
+    client_name: 'Maria Silva',
+    client_phone: '(11) 99999-1111',
+    service_name: 'Corte Feminino',
+    service_price: 130,
+    service_duration: 60,
+    staff_id: '3', // Ana Silva
+    staff_name: 'Ana Silva',
+    start_time: new Date().toISOString(),
+    end_time: new Date(Date.now() + 60 * 60000).toISOString(),
+    status: 'confirmed',
+  },
+  {
+    id: '2',
+    client_name: 'João Santos',
+    client_phone: '(11) 99999-2222',
+    service_name: 'Barba Completa',
+    service_price: 60,
+    service_duration: 30,
+    staff_id: '2', // Carlos Oliveira
+    staff_name: 'Carlos Oliveira',
+    start_time: new Date(Date.now() + 2 * 60 * 60000).toISOString(),
+    end_time: new Date(Date.now() + 2.5 * 60 * 60000).toISOString(),
+    status: 'pending',
+  },
+]
+
+const MOCK_STAFF = [
+  { id: '1', full_name: 'Mariana Costa' },
+  { id: '2', full_name: 'Carlos Oliveira' },
+  { id: '3', full_name: 'Ana Silva' },
+]
 
 export function AgendaPage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date())
+  const [selectedDate, setSelectedDate] = useState(new Date())
   const [staffFilter, setStaffFilter] = useState<string>('all')
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [cancelingAppointment, setCancelingAppointment] = useState<AppointmentWithDetails | null>(null)
+  const [appointments, setAppointments] = useState(MOCK_APPOINTMENTS)
+  const [loading] = useState(false)
 
-  const appointmentOptions = useMemo(() => ({
-    date: selectedDate,
-    staffId: staffFilter === 'all' ? undefined : staffFilter,
-  }), [selectedDate, staffFilter])
+  // Verifica se é funcionário (em produção, viria do contexto de auth)
+  const currentUser = JSON.parse(localStorage.getItem('demo_user') || '{}')
+  const isEmployee = currentUser.role === 'employee'
+  const currentStaffId = isEmployee ? currentUser.staff_id || '3' : null
 
-  const { appointments, loading, createAppointment, cancelAppointment, updateAppointment } = useAppointments(appointmentOptions)
-  const { getAllActiveStaff } = useStaff()
-  const [staffList, setStaffList] = useState<StaffMember[]>([])
-
-  useEffect(() => {
-    let mounted = true
-    getAllActiveStaff().then((data) => {
-      if (mounted) setStaffList(data)
-    })
-    return () => {
-      mounted = false
+  // Filtra agendamentos baseado no tipo de usuário
+  const filteredAppointments = appointments.filter((apt) => {
+    // Se for funcionário, mostra apenas os DELE
+    if (isEmployee && currentStaffId) {
+      return apt.staff_id === currentStaffId
     }
-  }, [])
+    // Se for proprietário, aplica o filtro selecionado
+    if (staffFilter !== 'all') {
+      return apt.staff_id === staffFilter
+    }
+    return true
+  })
 
-  const handleCreate = () => setIsModalOpen(true)
+  // Filtra por data
+  const dayAppointments = filteredAppointments.filter((apt) => {
+    const aptDate = new Date(apt.start_time)
+    return (
+      format(aptDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+    )
+  })
 
-  const handleCancel = (appointment: AppointmentWithDetails) => {
-    setCancelingAppointment(appointment)
+  // Estatísticas do dia
+  const confirmedCount = dayAppointments.filter((a) => a.status === 'confirmed').length
+  const completedCount = dayAppointments.filter((a) => a.status === 'completed').length
+  const totalRevenue = dayAppointments
+    .filter((a) => a.status !== 'canceled')
+    .reduce((sum, a) => sum + (a.service_price || 0), 0)
+
+  const handleCancel = (id: string) => {
+    setAppointments(appointments.map((apt) => 
+      apt.id === id ? { ...apt, status: 'canceled' } : apt
+    ))
   }
 
-  const handleConfirmCancel = async () => {
-    if (!cancelingAppointment) return
-    await cancelAppointment(cancelingAppointment.id)
-    setCancelingAppointment(null)
-  }
-
-  const handleComplete = async (appointment: AppointmentWithDetails) => {
-    await updateAppointment(appointment.id, { status: 'completed' })
-  }
-
-  const handleSave = async (data: AppointmentFormData) => {
-    return await createAppointment(data)
+  const handleComplete = (id: string) => {
+    setAppointments(appointments.map((apt) => 
+      apt.id === id ? { ...apt, status: 'completed' } : apt
+    ))
   }
 
   const goToPreviousDay = () => setSelectedDate(subDays(selectedDate, 1))
@@ -67,22 +116,16 @@ export function AgendaPage() {
 
   const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
 
-  // Estatísticas do dia
-  const confirmedCount = appointments.filter(a => a.status === 'confirmed' || a.status === 'confirmado').length
-  const totalRevenue = appointments
-    .filter(a => a.status !== 'canceled' && a.status !== 'cancelado')
-    .reduce((sum, a) => sum + (a.service_price || a.price || 0), 0)
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Agenda"
-        description="Gerencie os agendamentos do seu estabelecimento"
-        action={{
+        description={isEmployee ? "Seus agendamentos" : "Gerencie os agendamentos do seu estabelecimento"}
+        action={!isEmployee ? {
           label: 'Novo agendamento',
-          onClick: handleCreate,
+          onClick: () => alert('Em produção, abriria modal de agendamento'),
           icon: <Plus className="h-4 w-4" />,
-        }}
+        } : undefined}
       />
 
       {/* Navegação de Data */}
@@ -93,25 +136,23 @@ export function AgendaPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={goToPreviousDay}
-                className="h-10 w-10 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-600 cursor-pointer"
-                title="Dia anterior"
+                className="h-10 w-10 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-600"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               
               <div className="text-center min-w-[180px]">
-                <p className="text-lg font-bold text-slate-800">
-                  {formatAppointmentDate(selectedDate)}
+                <p className="text-lg font-bold text-slate-900">
+                  {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  {format(selectedDate, "EEEE", { locale: ptBR })}
                 </p>
               </div>
 
               <button
                 onClick={goToNextDay}
-                className="h-10 w-10 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-600 cursor-pointer"
-                title="Próximo dia"
+                className="h-10 w-10 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-600"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -119,36 +160,37 @@ export function AgendaPage() {
               {!isToday && (
                 <button
                   onClick={goToToday}
-                  className="ml-2 h-10 px-3 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                  style={{ color: 'var(--primary-color)' }}
+                  className="ml-2 h-10 px-3 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors border border-amber-200"
                 >
                   Hoje
                 </button>
               )}
             </div>
 
-            {/* Filtro por profissional */}
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-slate-400 hidden sm:block" />
-              <select
-                value={staffFilter}
-                onChange={(e) => setStaffFilter(e.target.value)}
-                className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
-              >
-                <option value="all">Todos os profissionais</option>
-                {staffList.map(member => (
-                  <option key={member.id} value={member.id}>
-                    {member.full_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Filtro por profissional (só aparece para proprietário) */}
+            {!isEmployee && (
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-slate-400 hidden sm:block" />
+                <select
+                  value={staffFilter}
+                  onChange={(e) => setStaffFilter(e.target.value)}
+                  className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:border-amber-500"
+                >
+                  <option value="all">Todos os profissionais</option>
+                  {MOCK_STAFF.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Estatísticas do dia */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-200">
             <div className="text-center">
-              <p className="text-2xl font-bold text-slate-800">{appointments.length}</p>
+              <p className="text-2xl font-bold text-slate-900">{dayAppointments.length}</p>
               <p className="text-xs text-slate-500">Total</p>
             </div>
             <div className="text-center">
@@ -156,14 +198,12 @@ export function AgendaPage() {
               <p className="text-xs text-slate-500">Confirmados</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-slate-800">
-                {appointments.filter(a => a.status === 'completed' || a.status === 'concluido').length}
-              </p>
+              <p className="text-2xl font-bold text-slate-800">{completedCount}</p>
               <p className="text-xs text-slate-500">Concluídos</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold" style={{ color: 'var(--primary-color)' }}>
-                R$ {totalRevenue.toFixed(2).replace('.', ',')}
+              <p className="text-2xl font-bold" style={{ color: '#D4AF37' }}>
+                {formatCurrency(totalRevenue)}
               </p>
               <p className="text-xs text-slate-500">Faturamento</p>
             </div>
@@ -173,103 +213,128 @@ export function AgendaPage() {
 
       {/* Conteúdo */}
       {loading ? (
-        <SkeletonTable />
-      ) : appointments.length === 0 ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+      ) : dayAppointments.length === 0 ? (
         <Card>
           <EmptyState
             icon={CalendarIcon}
             title="Nenhum agendamento neste dia"
-            description="Comece adicionando um novo agendamento para esta data"
-            actionLabel="Novo agendamento"
-            onAction={handleCreate}
+            description={isEmployee 
+              ? "Você não tem agendamentos para esta data"
+              : "Comece adicionando um novo agendamento para esta data"}
+            actionLabel={!isEmployee ? "Novo agendamento" : undefined}
+            onAction={!isEmployee ? () => alert('Em produção, abriria modal') : undefined}
           />
         </Card>
       ) : (
-        <>
-          {/* Mobile: Cards */}
-          <div className="md:hidden space-y-3">
-            <AnimatePresence>
-              {appointments.map((appointment) => (
-                <motion.div
-                  key={appointment.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <AppointmentCard
-                    appointment={appointment}
-                    onCancel={handleCancel}
-                    onComplete={handleComplete}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+        <div className="space-y-3">
+          {dayAppointments
+            .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+            .map((appointment) => (
+              <motion.div
+                key={appointment.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  'bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all',
+                  appointment.status === 'canceled' && 'opacity-60'
+                )}
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  {/* Horário e Status */}
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-lg bg-slate-900 flex items-center justify-center">
+                      <Clock className="h-6 w-6 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900 text-lg">
+                        {formatTime(appointment.start_time)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {appointment.service_duration}min
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        appointment.status === 'confirmed'
+                          ? 'success'
+                          : appointment.status === 'completed'
+                          ? 'info'
+                          : appointment.status === 'canceled'
+                          ? 'danger'
+                          : 'warning'
+                      }
+                      className="ml-2"
+                    >
+                      {appointment.status === 'confirmed' && 'Confirmado'}
+                      {appointment.status === 'completed' && 'Concluído'}
+                      {appointment.status === 'canceled' && 'Cancelado'}
+                      {appointment.status === 'pending' && 'Pendente'}
+                    </Badge>
+                  </div>
 
-          {/* Desktop: Tabela */}
-          <Card className="hidden md:block overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Horário
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Cliente
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Serviço
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Valor
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {appointments.map((appointment) => (
-                    <AppointmentTableRow
-                      key={appointment.id}
-                      appointment={appointment}
-                      onCancel={handleCancel}
-                      onComplete={handleComplete}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </>
+                  {/* Informações */}
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <User className="h-3 w-3" /> Cliente
+                      </p>
+                      <p className="font-medium text-slate-900">
+                        {appointment.client_name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {appointment.client_phone}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <Scissors className="h-3 w-3" /> Serviço
+                      </p>
+                      <p className="font-medium text-slate-900">
+                        {appointment.service_name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Com: {appointment.staff_name}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">Valor</p>
+                      <p className="font-bold text-emerald-600 text-lg">
+                        {formatCurrency(appointment.service_price)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Ações */}
+                  {appointment.status === 'confirmed' && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => handleComplete(appointment.id)}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                        size="sm"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Concluir
+                      </Button>
+                      <Button
+                        onClick={() => handleCancel(appointment.id)}
+                        variant="outline"
+                        size="sm"
+                        className="text-red-500 hover:bg-red-50"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+        </div>
       )}
-
-      {/* Modal de criação */}
-      <AppointmentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        appointment={null}
-        onSave={handleSave}
-        initialDate={format(selectedDate, 'yyyy-MM-dd')}
-      />
-
-      {/* Dialog de confirmação de cancelamento */}
-      <ConfirmDialog
-        isOpen={!!cancelingAppointment}
-        onClose={() => setCancelingAppointment(null)}
-        onConfirm={handleConfirmCancel}
-        title="Cancelar agendamento?"
-        description={`O agendamento de "${cancelingAppointment?.client_name}" às ${cancelingAppointment?.start_time ? new Date(cancelingAppointment.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : cancelingAppointment?.time || ''} será cancelado. O horário ficará disponível para novos agendamentos.`}
-        confirmLabel="Sim, cancelar"
-        variant="danger"
-      />
     </div>
   )
 }
-
-export default AgendaPage
