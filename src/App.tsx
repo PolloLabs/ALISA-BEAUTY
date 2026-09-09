@@ -8,7 +8,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/ui/Toast'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
-import { LoginDemoPage } from '@/pages/LoginDemoPage'
 import { Onboarding } from '@/pages/Onboarding'
 import { Dashboard } from '@/pages/Dashboard'
 import { SalonSettings } from '@/pages/settings/SalonSettings'
@@ -37,7 +36,7 @@ function App() {
 
               {/* Rotas de Autenticação */}
               <Route element={<AuthLayout />}>
-                <Route path="/login" element={<LoginDemoPage />} />
+                <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
               </Route>
 
