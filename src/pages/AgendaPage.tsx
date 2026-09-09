@@ -13,6 +13,8 @@ import {
   CheckCircle,
   Plus,
   Filter,
+  Users,
+  Briefcase,
 } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/formatters'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -23,7 +25,6 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
-// DADOS MOCK (em produção, viriam do Supabase)
 const MOCK_APPOINTMENTS = [
   {
     id: '1',
@@ -32,7 +33,7 @@ const MOCK_APPOINTMENTS = [
     service_name: 'Corte Feminino',
     service_price: 130,
     service_duration: 60,
-    staff_id: '3', // Ana Silva
+    staff_id: '3',
     staff_name: 'Ana Silva',
     start_time: new Date().toISOString(),
     end_time: new Date(Date.now() + 60 * 60000).toISOString(),
@@ -45,11 +46,24 @@ const MOCK_APPOINTMENTS = [
     service_name: 'Barba Completa',
     service_price: 60,
     service_duration: 30,
-    staff_id: '2', // Carlos Oliveira
+    staff_id: '2',
     staff_name: 'Carlos Oliveira',
     start_time: new Date(Date.now() + 2 * 60 * 60000).toISOString(),
     end_time: new Date(Date.now() + 2.5 * 60 * 60000).toISOString(),
     status: 'pending',
+  },
+  {
+    id: '3',
+    client_name: 'Pedro Costa',
+    client_phone: '(11) 99999-3333',
+    service_name: 'Manicure',
+    service_price: 75,
+    service_duration: 45,
+    staff_id: '1',
+    staff_name: 'Mariana Costa',
+    start_time: new Date(Date.now() + 3 * 60 * 60000).toISOString(),
+    end_time: new Date(Date.now() + 3.75 * 60 * 60000).toISOString(),
+    status: 'confirmed',
   },
 ]
 
@@ -64,34 +78,29 @@ export function AgendaPage() {
   const [staffFilter, setStaffFilter] = useState<string>('all')
   const [appointments, setAppointments] = useState(MOCK_APPOINTMENTS)
   const [loading] = useState(false)
+  
+  // ESTADO PARA TESTE: alterna entre proprietário e funcionário
+  const [viewMode, setViewMode] = useState<'owner' | 'employee'>('owner')
+  const currentStaffId = '3' // Simulando que é a Ana Silva
 
-  // Verifica se é funcionário (em produção, viria do contexto de auth)
-  const currentUser = JSON.parse(localStorage.getItem('demo_user') || '{}')
-  const isEmployee = currentUser.role === 'employee'
-  const currentStaffId = isEmployee ? currentUser.staff_id || '3' : null
+  const isEmployee = viewMode === 'employee'
 
   // Filtra agendamentos baseado no tipo de usuário
   const filteredAppointments = appointments.filter((apt) => {
-    // Se for funcionário, mostra apenas os DELE
-    if (isEmployee && currentStaffId) {
+    if (isEmployee) {
       return apt.staff_id === currentStaffId
     }
-    // Se for proprietário, aplica o filtro selecionado
     if (staffFilter !== 'all') {
       return apt.staff_id === staffFilter
     }
     return true
   })
 
-  // Filtra por data
   const dayAppointments = filteredAppointments.filter((apt) => {
     const aptDate = new Date(apt.start_time)
-    return (
-      format(aptDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-    )
+    return format(aptDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
   })
 
-  // Estatísticas do dia
   const confirmedCount = dayAppointments.filter((a) => a.status === 'confirmed').length
   const completedCount = dayAppointments.filter((a) => a.status === 'completed').length
   const totalRevenue = dayAppointments
@@ -128,11 +137,46 @@ export function AgendaPage() {
         } : undefined}
       />
 
+      {/* ALERTA DE MODO DE TESTE */}
+      <div className={cn(
+        'p-4 rounded-xl border-2 flex items-center justify-between',
+        isEmployee ? 'bg-blue-50 border-blue-300' : 'bg-amber-50 border-amber-300'
+      )}>
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            'h-10 w-10 rounded-full flex items-center justify-center',
+            isEmployee ? 'bg-blue-500' : 'bg-amber-500'
+          )}>
+            {isEmployee ? <Users className="h-5 w-5 text-white" /> : <Briefcase className="h-5 w-5 text-white" />}
+          </div>
+          <div>
+            <p className="font-bold text-slate-900">
+              {isEmployee ? ' Modo FUNCIONÁRIO' : ' Modo PROPRIETÁRIO'}
+            </p>
+            <p className="text-sm text-slate-600">
+              {isEmployee 
+                ? 'Você está vendo apenas SEUS agendamentos (Ana Silva)' 
+                : 'Você está vendo TODOS os agendamentos da equipe'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setViewMode(isEmployee ? 'owner' : 'employee')}
+          className={cn(
+            'h-10 px-4 rounded-lg font-medium transition-colors',
+            isEmployee 
+              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              : 'bg-amber-600 text-white hover:bg-amber-700'
+          )}
+        >
+          Trocar para {isEmployee ? 'Proprietário' : 'Funcionário'}
+        </button>
+      </div>
+
       {/* Navegação de Data */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-            {/* Navegação */}
             <div className="flex items-center gap-2">
               <button
                 onClick={goToPreviousDay}
@@ -167,7 +211,6 @@ export function AgendaPage() {
               )}
             </div>
 
-            {/* Filtro por profissional (só aparece para proprietário) */}
             {!isEmployee && (
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-slate-400 hidden sm:block" />
@@ -187,7 +230,6 @@ export function AgendaPage() {
             )}
           </div>
 
-          {/* Estatísticas do dia */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-200">
             <div className="text-center">
               <p className="text-2xl font-bold text-slate-900">{dayAppointments.length}</p>
@@ -211,7 +253,6 @@ export function AgendaPage() {
         </CardContent>
       </Card>
 
-      {/* Conteúdo */}
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -245,7 +286,6 @@ export function AgendaPage() {
                 )}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  {/* Horário e Status */}
                   <div className="flex items-center gap-3">
                     <div className="h-12 w-12 rounded-lg bg-slate-900 flex items-center justify-center">
                       <Clock className="h-6 w-6 text-amber-500" />
@@ -277,7 +317,6 @@ export function AgendaPage() {
                     </Badge>
                   </div>
 
-                  {/* Informações */}
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-xs text-slate-500 flex items-center gap-1">
@@ -309,7 +348,6 @@ export function AgendaPage() {
                     </div>
                   </div>
 
-                  {/* Ações */}
                   {appointment.status === 'confirmed' && (
                     <div className="flex items-center gap-2">
                       <Button
