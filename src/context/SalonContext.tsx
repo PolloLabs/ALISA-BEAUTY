@@ -63,7 +63,87 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return initialServices;
   });
 
-  const [professionals] = useState<Professional[]>(initialProfessionals);
+  const [professionals, setProfessionals] = useState<Professional[]>(() => {
+    try {
+      const raw = localStorage.getItem('belezaflow_staff');
+      if (raw) {
+        const staffList = JSON.parse(raw);
+        if (Array.isArray(staffList) && staffList.length > 0) {
+          interface RawStaff {
+            id: string;
+            full_name?: string;
+            name?: string;
+            job_title?: string;
+            role?: string;
+            phone?: string;
+            avatar_url?: string;
+            avatar?: string;
+            is_active?: boolean;
+          }
+          return (staffList as RawStaff[])
+            .filter((s) => s.is_active !== false)
+            .map((s) => ({
+              id: s.id,
+              name: s.full_name || s.name || 'Profissional',
+              role: s.job_title || s.role || 'Especialista',
+              phone: s.phone || '',
+              avatar: s.avatar_url || s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+              specialties: [s.job_title || 'Atendimento'],
+              rating: 5.0,
+            }));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return initialProfessionals;
+  });
+
+  useEffect(() => {
+    const handleSyncStaff = () => {
+      try {
+        const raw = localStorage.getItem('belezaflow_staff');
+        if (raw) {
+          const staffList = JSON.parse(raw);
+          if (Array.isArray(staffList) && staffList.length > 0) {
+            interface RawStaff {
+              id: string;
+              full_name?: string;
+              name?: string;
+              job_title?: string;
+              role?: string;
+              phone?: string;
+              avatar_url?: string;
+              avatar?: string;
+              is_active?: boolean;
+            }
+            setProfessionals(
+              (staffList as RawStaff[])
+                .filter((s) => s.is_active !== false)
+                .map((s) => ({
+                  id: s.id,
+                  name: s.full_name || s.name || 'Profissional',
+                  role: s.job_title || s.role || 'Especialista',
+                  phone: s.phone || '',
+                  avatar: s.avatar_url || s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+                  specialties: [s.job_title || 'Atendimento'],
+                  rating: 5.0,
+                }))
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao sincronizar profissionais:', err);
+      }
+    };
+
+    window.addEventListener('storage', handleSyncStaff);
+    window.addEventListener('staff_updated', handleSyncStaff);
+    return () => {
+      window.removeEventListener('storage', handleSyncStaff);
+      window.removeEventListener('staff_updated', handleSyncStaff);
+    };
+  }, []);
 
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_APPOINTMENTS);

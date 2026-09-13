@@ -78,6 +78,9 @@ function getLocalStaff(salonId: string): StaffMember[] {
 function saveLocalStaff(staffList: StaffMember[]) {
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(staffList))
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('staff_updated'))
+    }
   } catch (e) {
     console.error('Error saving local staff:', e)
   }
