@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { User, Clock, Scissors, Users, Calendar, AlertCircle, FileText, Sparkles } from 'lucide-react'
+import { User, Clock, Scissors, Users, Calendar, AlertCircle, FileText, Sparkles, Mail } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { InputMaskField } from '@/components/ui/InputMaskField'
 import { useSalon } from '@/hooks/useSalon'
@@ -23,6 +23,7 @@ export const appointmentFormSchema = z.object({
   client_phone: z.string()
     .min(14, 'Telefone deve ter pelo menos 10 dígitos')
     .refine((val) => val.replace(/\D/g, '').length >= 10, 'Telefone inválido'),
+  client_email: z.string().email('E-mail inválido').optional().or(z.literal('')),
   service_id: z.string().min(1, 'Selecione um serviço'),
   staff_id: z.string().min(1, 'Selecione um profissional'),
   date: z.string().min(1, 'Selecione uma data'),
@@ -250,6 +251,17 @@ export function AppointmentForm({ defaultValues, onSubmit, onCancel, isLoading }
             value={phoneValue || ''}
             onChange={(e) => setValue('client_phone', e.target.value, { shouldValidate: true })}
             error={errors.client_phone?.message}
+          />
+        </div>
+
+        <div>
+          <Input
+            type="email"
+            label="E-mail (opcional)"
+            placeholder="cliente@email.com"
+            leftIcon={<Mail className="h-4 w-4 text-slate-400" />}
+            error={errors.client_email?.message}
+            {...register('client_email')}
           />
         </div>
       </div>

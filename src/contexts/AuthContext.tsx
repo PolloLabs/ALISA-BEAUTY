@@ -8,11 +8,13 @@ export interface AuthUser {
   salonName?: string
 }
 
+export type UserRole = 'super_admin' | 'owner' | 'employee' | 'client'
+
 export interface UserProfile {
   id: string
   full_name: string | null
   email?: string
-  role?: string
+  role?: UserRole
 }
 
 interface AuthContextType {
@@ -24,6 +26,7 @@ interface AuthContextType {
   register: (data: { email: string; password: string; fullName: string; salonName?: string }) => Promise<void>
   logout: () => Promise<void>
   signOut: () => Promise<void>
+  setRole: (role: UserRole) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -169,11 +172,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(LOCAL_STORAGE_USER_KEY)
   }
 
+  const [activeRole, setActiveRole] = useState<UserRole>(() => {
+    try {
+      const saved = localStorage.getItem('belezaflow_user_role')
+      if (saved && ['super_admin', 'owner', 'employee', 'client'].includes(saved)) {
+        return saved as UserRole
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    return 'owner'
+  })
+
+  const setRole = (role: UserRole) => {
+    setActiveRole(role)
+    try {
+      localStorage.setItem('belezaflow_user_role', role)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const profile: UserProfile | null = user ? {
     id: user.id,
     full_name: user.fullName || user.email?.split('@')[0] || 'Usuário',
     email: user.email,
-    role: 'owner',
+    role: activeRole,
   } : null
 
   return (
@@ -187,6 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         signOut: logout,
+        setRole,
       }}
     >
       {children}

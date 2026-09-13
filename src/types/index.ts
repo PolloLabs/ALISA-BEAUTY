@@ -22,6 +22,10 @@ export interface Salon {
   open_time: string;
   close_time: string;
   is_active: boolean;
+  payment_enabled?: boolean;
+  deposit_percentage?: number;
+  full_payment_discount?: number;
+  require_deposit?: boolean;
   created_at: string;
   slug?: string;
 }
@@ -36,14 +40,17 @@ export interface Staff {
 }
 
 export type AppointmentStatus =
-  | 'pending'
   | 'confirmed'
+  | 'pending'
   | 'completed'
   | 'canceled'
   | 'pendente'
   | 'confirmado'
   | 'concluido'
   | 'cancelado';
+
+export type PaymentStatus = 'pending' | 'partial' | 'paid';
+export type PaymentMethod = 'pix' | 'card' | 'cash' | 'boleto';
 
 export interface Service {
   id: string;
@@ -74,19 +81,37 @@ export interface Appointment {
   client_name: string;
   client_phone: string;
   client_email?: string;
+  start_time?: string;
+  end_time?: string;
+  status: AppointmentStatus;
+  payment_status?: PaymentStatus;
+  payment_amount?: number;
+  payment_method?: PaymentMethod;
+  deposit_amount?: number;
+  notes?: string | null;
+  created_at: string;
+  // Campos auxiliares / legados para compatibilidade
   service_name?: string;
   professional_id?: string;
   professional_name?: string;
   date?: string; // YYYY-MM-DD
   time?: string; // HH:mm
-  start_time?: string;
-  end_time?: string;
   duration_minutes?: number;
   price?: number;
-  status: AppointmentStatus;
-  notes?: string | null;
-  created_at: string;
 }
+
+export interface Payment {
+  id: string;
+  appointment_id: string;
+  amount: number;
+  method: 'pix' | 'card' | 'boleto';
+  status: 'pending' | 'completed' | 'failed';
+  transaction_id?: string | null;
+  paid_at?: string | null;
+  created_at?: string;
+}
+
+export type AppointmentPayment = Payment;
 
 export interface SalonStats {
   todayRevenue: number;

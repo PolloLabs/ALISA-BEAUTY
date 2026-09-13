@@ -9,9 +9,14 @@ import {
   DollarSign,
   X,
   Sparkles,
+  ExternalLink,
+  ShieldCheck,
+  Briefcase,
+  Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSalon } from '@/hooks/useSalon'
+import { useAuth } from '@/hooks/useAuth'
 import { getBusinessConfig } from '@/lib/businessConfig'
 
 export interface SidebarProps {
@@ -32,6 +37,7 @@ const menuItems = [
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation()
   const { salon } = useSalon()
+  const { profile } = useAuth()
 
   const handleNavClick = () => {
     if (window.innerWidth < 768) {
@@ -41,6 +47,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const config = getBusinessConfig(salon?.business_type || 'beauty_salon')
   const LogoIcon = config.icon || Sparkles
+  const role = profile?.role || 'owner'
 
   return (
     <>
@@ -111,11 +118,54 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           })}
         </nav>
 
-        {/* Footer info */}
-        <div className="p-4 border-t border-slate-200/80 bg-slate-50/50">
+        {/* Public Booking Link Card */}
+        <div className="p-3.5 border-t border-slate-100 bg-amber-50/40">
+          <a
+            href={`/agendar/${salon?.id || 'demo'}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-amber-200/80 text-xs font-semibold text-slate-900 hover:border-amber-400 hover:shadow-xs transition-all group cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Link do Cliente</span>
+            </div>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
+          </a>
+        </div>
+
+        {/* Footer info & Role Badge */}
+        <div className="p-3.5 border-t border-slate-200/80 bg-slate-50/70 space-y-2">
           <div className="flex items-center justify-between text-[11px] text-slate-500">
             <span className="font-medium text-slate-700">{config.label}</span>
             <span className="text-amber-600 font-semibold">• Ativo</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-slate-200/80 text-[10px] font-semibold text-slate-700">
+            {role === 'super_admin' && (
+              <>
+                <ShieldCheck className="w-3 h-3 text-purple-600" />
+                <span className="text-purple-900">Modo: Super Admin</span>
+              </>
+            )}
+            {role === 'owner' && (
+              <>
+                <Briefcase className="w-3 h-3 text-amber-600" />
+                <span className="text-amber-900">Modo: Dono do Salão</span>
+              </>
+            )}
+            {role === 'employee' && (
+              <>
+                <Users className="w-3 h-3 text-blue-600" />
+                <span className="text-blue-900">Modo: Profissional</span>
+              </>
+            )}
+            {role === 'client' && (
+              <>
+                <Sparkles className="w-3 h-3 text-emerald-600" />
+                <span className="text-emerald-900">Modo: Cliente</span>
+              </>
+            )}
           </div>
         </div>
       </aside>

@@ -45,6 +45,7 @@ export function AppointmentModal({ isOpen, onClose, appointment, onSave, initial
       return {
         client_name: appointment.client_name,
         client_phone: appointment.client_phone || '',
+        client_email: appointment.client_email || '',
         service_id: appointment.service_id,
         staff_id: appointment.staff_id || appointment.professional_id || '',
         date: appointment.date || (appointment.start_time ? appointment.start_time.substring(0, 10) : ''),
@@ -60,6 +61,7 @@ export function AppointmentModal({ isOpen, onClose, appointment, onSave, initial
     appointment?.id,
     appointment?.client_name,
     appointment?.client_phone,
+    appointment?.client_email,
     appointment?.service_id,
     appointment?.staff_id,
     appointment?.date,

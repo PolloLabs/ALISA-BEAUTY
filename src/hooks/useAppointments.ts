@@ -27,8 +27,14 @@ export interface UseAppointmentsReturn {
     service_id: string
     client_name: string
     client_phone: string
+    client_email?: string
     date: string // YYYY-MM-DD
     time: string // HH:mm
+    status?: Appointment['status']
+    payment_status?: Appointment['payment_status']
+    payment_amount?: number
+    payment_method?: Appointment['payment_method']
+    deposit_amount?: number
     notes?: string
   }) => Promise<boolean>
   updateAppointment: (id: string, data: Partial<Appointment>) => Promise<boolean>
@@ -176,8 +182,14 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
     service_id: string
     client_name: string
     client_phone: string
+    client_email?: string
     date: string
     time: string
+    status?: Appointment['status']
+    payment_status?: Appointment['payment_status']
+    payment_amount?: number
+    payment_method?: Appointment['payment_method']
+    deposit_amount?: number
     notes?: string
   }) => {
     if (!salon) return false
@@ -212,9 +224,14 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
           service_id: data.service_id,
           client_name: data.client_name,
           client_phone: data.client_phone,
+          client_email: data.client_email || null,
           start_time: startDate.toISOString(),
           end_time: endDate.toISOString(),
-          status: 'confirmed',
+          status: data.status || 'confirmed',
+          payment_status: data.payment_status || 'pending',
+          payment_amount: data.payment_amount ?? 0,
+          payment_method: data.payment_method || null,
+          deposit_amount: data.deposit_amount ?? 0,
           notes: data.notes || null,
         })
 
@@ -234,11 +251,16 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
         service_id: data.service_id,
         client_name: data.client_name,
         client_phone: data.client_phone,
+        client_email: data.client_email,
         date: data.date,
         time: data.time,
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
-        status: 'confirmed',
+        status: data.status || 'confirmed',
+        payment_status: data.payment_status || 'pending',
+        payment_amount: data.payment_amount ?? 0,
+        payment_method: data.payment_method,
+        deposit_amount: data.deposit_amount ?? 0,
         notes: data.notes || null,
         service_name: serviceName,
         service_price: servicePrice,

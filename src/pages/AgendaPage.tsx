@@ -15,6 +15,9 @@ import {
   Filter,
   Users,
   Briefcase,
+  CreditCard,
+  ShieldCheck,
+  Globe,
 } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/formatters'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -25,11 +28,37 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
-const MOCK_APPOINTMENTS = [
+interface AgendaAppointment {
+  id: string
+  salon_id: string
+  client_name: string
+  client_phone: string
+  client_email?: string
+  service_id: string
+  service_name: string
+  service_price: number
+  service_duration: number
+  staff_id: string
+  staff_name: string
+  start_time: string
+  end_time: string
+  status: 'confirmed' | 'pending' | 'completed' | 'canceled'
+  payment_status: 'pending' | 'partial' | 'paid'
+  payment_amount: number
+  payment_method?: 'pix' | 'card' | 'cash' | 'boleto'
+  deposit_amount?: number
+  notes?: string
+  created_at: string
+}
+
+const MOCK_APPOINTMENTS: AgendaAppointment[] = [
   {
     id: '1',
+    salon_id: 'default-salon',
     client_name: 'Maria Silva',
     client_phone: '(11) 99999-1111',
+    client_email: 'maria.silva@email.com',
+    service_id: 'srv-1',
     service_name: 'Corte Feminino',
     service_price: 130,
     service_duration: 60,
@@ -38,11 +67,20 @@ const MOCK_APPOINTMENTS = [
     start_time: new Date().toISOString(),
     end_time: new Date(Date.now() + 60 * 60000).toISOString(),
     status: 'confirmed',
+    payment_status: 'paid',
+    payment_amount: 130,
+    payment_method: 'pix',
+    deposit_amount: 39,
+    notes: 'Cliente prefere corte em camadas',
+    created_at: new Date().toISOString(),
   },
   {
     id: '2',
+    salon_id: 'default-salon',
     client_name: 'João Santos',
     client_phone: '(11) 99999-2222',
+    client_email: 'joao.santos@email.com',
+    service_id: 'srv-2',
     service_name: 'Barba Completa',
     service_price: 60,
     service_duration: 30,
@@ -51,11 +89,20 @@ const MOCK_APPOINTMENTS = [
     start_time: new Date(Date.now() + 2 * 60 * 60000).toISOString(),
     end_time: new Date(Date.now() + 2.5 * 60 * 60000).toISOString(),
     status: 'pending',
+    payment_status: 'partial',
+    payment_amount: 18,
+    payment_method: 'card',
+    deposit_amount: 18,
+    notes: 'Sinal de 30% quitado via cartão',
+    created_at: new Date().toISOString(),
   },
   {
     id: '3',
+    salon_id: 'default-salon',
     client_name: 'Pedro Costa',
     client_phone: '(11) 99999-3333',
+    client_email: 'pedro.costa@email.com',
+    service_id: 'srv-3',
     service_name: 'Manicure',
     service_price: 75,
     service_duration: 45,
@@ -64,6 +111,12 @@ const MOCK_APPOINTMENTS = [
     start_time: new Date(Date.now() + 3 * 60 * 60000).toISOString(),
     end_time: new Date(Date.now() + 3.75 * 60 * 60000).toISOString(),
     status: 'confirmed',
+    payment_status: 'pending',
+    payment_amount: 0,
+    payment_method: 'cash',
+    deposit_amount: 0,
+    notes: 'Pagamento total agendado para o atendimento',
+    created_at: new Date().toISOString(),
   },
 ]
 
@@ -76,23 +129,35 @@ const MOCK_STAFF = [
 export function AgendaPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [staffFilter, setStaffFilter] = useState<string>('all')
-  const [appointments, setAppointments] = useState(MOCK_APPOINTMENTS)
+  const [appointments, setAppointments] = useState<AgendaAppointment[]>(MOCK_APPOINTMENTS)
   const [loading] = useState(false)
   
-  // ESTADO PARA TESTE: alterna entre proprietário e funcionário
-  const [viewMode, setViewMode] = useState<'owner' | 'employee'>('owner')
+  // ESTADO PARA TESTE DAS POLÍTICAS RLS:
+  // super_admin: super_admin_all
+  // owner: owner_salon_only
+  // employee: employee_own_only
+  // client: client_public_insert / client_public_select
+  const [viewMode, setViewMode] = useState<'super_admin' | 'owner' | 'employee' | 'client'>('owner')
   const currentStaffId = '3' // Simulando que é a Ana Silva
 
   const isEmployee = viewMode === 'employee'
+  const isSuperAdmin = viewMode === 'super_admin'
+  const isClient = viewMode === 'client'
 
-  // Filtra agendamentos baseado no tipo de usuário
+  // Filtra agendamentos baseado no tipo de usuário / política RLS
   const filteredAppointments = appointments.filter((apt) => {
-    if (isEmployee) {
+    if (viewMode === 'employee') {
       return apt.staff_id === currentStaffId
     }
-    if (staffFilter !== 'all') {
-      return apt.staff_id === staffFilter
+    if (viewMode === 'owner') {
+      // Owner vê apenas do seu salão
+      return apt.salon_id === 'default-salon' && (staffFilter === 'all' || apt.staff_id === staffFilter)
     }
+    if (viewMode === 'super_admin') {
+      // Super admin vê tudo
+      return staffFilter === 'all' || apt.staff_id === staffFilter
+    }
+    // Cliente vê horários para agendamento
     return true
   })
 
@@ -137,40 +202,86 @@ export function AgendaPage() {
         } : undefined}
       />
 
-      {/* ALERTA DE MODO DE TESTE */}
+      {/* SELETOR DE MODO DE TESTE DAS POLÍTICAS RLS */}
       <div className={cn(
-        'p-4 rounded-xl border-2 flex items-center justify-between',
-        isEmployee ? 'bg-blue-50 border-blue-300' : 'bg-amber-50 border-amber-300'
+        'p-4 rounded-2xl border transition-all space-y-3',
+        isSuperAdmin ? 'bg-purple-50/70 border-purple-200' :
+        isEmployee ? 'bg-blue-50/70 border-blue-200' :
+        isClient ? 'bg-emerald-50/70 border-emerald-200' :
+        'bg-amber-50/70 border-amber-200'
       )}>
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            'h-10 w-10 rounded-full flex items-center justify-center',
-            isEmployee ? 'bg-blue-500' : 'bg-amber-500'
-          )}>
-            {isEmployee ? <Users className="h-5 w-5 text-white" /> : <Briefcase className="h-5 w-5 text-white" />}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              'h-10 w-10 rounded-xl flex items-center justify-center shadow-sm',
+              isSuperAdmin ? 'bg-purple-600 text-white' :
+              isEmployee ? 'bg-blue-600 text-white' :
+              isClient ? 'bg-emerald-600 text-white' :
+              'bg-amber-600 text-white'
+            )}>
+              {isSuperAdmin && <ShieldCheck className="h-5 w-5" />}
+              {isEmployee && <Users className="h-5 w-5" />}
+              {isClient && <Globe className="h-5 w-5" />}
+              {!isSuperAdmin && !isEmployee && !isClient && <Briefcase className="h-5 w-5" />}
+            </div>
+            <div>
+              <p className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                Simulador de Política RLS:
+                <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700">
+                  {isSuperAdmin && 'super_admin_all (ALL)'}
+                  {viewMode === 'owner' && 'owner_salon_only (ALL)'}
+                  {isEmployee && 'employee_own_only (SELECT)'}
+                  {isClient && 'client_public (INSERT/SELECT)'}
+                </span>
+              </p>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {isSuperAdmin && 'Visão Super Admin: Acesso irrestrito a todos os agendamentos e unidades.'}
+                {viewMode === 'owner' && 'Visão Proprietário: Apenas agendamentos pertencentes ao seu salão.'}
+                {isEmployee && 'Visão Profissional: Apenas os agendamentos atribuídos à sua conta (Ana Silva).'}
+                {isClient && 'Visão Pública / Cliente: Sem login obrigatório, com acesso direto a agendamento online.'}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="font-bold text-slate-900">
-              {isEmployee ? ' Modo FUNCIONÁRIO' : ' Modo PROPRIETÁRIO'}
-            </p>
-            <p className="text-sm text-slate-600">
-              {isEmployee 
-                ? 'Você está vendo apenas SEUS agendamentos (Ana Silva)' 
-                : 'Você está vendo TODOS os agendamentos da equipe'}
-            </p>
+
+          <div className="flex items-center gap-1.5 bg-white/80 p-1 rounded-xl border border-slate-200/80 self-start sm:self-center">
+            <button
+              onClick={() => setViewMode('super_admin')}
+              className={cn(
+                'px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                isSuperAdmin ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              )}
+            >
+              Super Admin
+            </button>
+            <button
+              onClick={() => setViewMode('owner')}
+              className={cn(
+                'px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                viewMode === 'owner' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              )}
+            >
+              Proprietário
+            </button>
+            <button
+              onClick={() => setViewMode('employee')}
+              className={cn(
+                'px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                isEmployee ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              )}
+            >
+              Funcionário
+            </button>
+            <button
+              onClick={() => setViewMode('client')}
+              className={cn(
+                'px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                isClient ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              )}
+            >
+              Cliente (Público)
+            </button>
           </div>
         </div>
-        <button
-          onClick={() => setViewMode(isEmployee ? 'owner' : 'employee')}
-          className={cn(
-            'h-10 px-4 rounded-lg font-medium transition-colors',
-            isEmployee 
-              ? 'bg-blue-600 text-white hover:bg-blue-700' 
-              : 'bg-amber-600 text-white hover:bg-amber-700'
-          )}
-        >
-          Trocar para {isEmployee ? 'Proprietário' : 'Funcionário'}
-        </button>
       </div>
 
       {/* Navegação de Data */}
@@ -317,7 +428,7 @@ export function AgendaPage() {
                     </Badge>
                   </div>
 
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <p className="text-xs text-slate-500 flex items-center gap-1">
                         <User className="h-3 w-3" /> Cliente
@@ -328,6 +439,11 @@ export function AgendaPage() {
                       <p className="text-xs text-slate-500">
                         {appointment.client_phone}
                       </p>
+                      {appointment.client_email && (
+                        <p className="text-[11px] text-slate-400 truncate max-w-[180px]">
+                          {appointment.client_email}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <p className="text-xs text-slate-500 flex items-center gap-1">
@@ -340,11 +456,40 @@ export function AgendaPage() {
                         Com: {appointment.staff_name}
                       </p>
                     </div>
+                    <div>
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <CreditCard className="h-3 w-3" /> Pagamento
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                        <span className={cn(
+                          'text-xs font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1',
+                          appointment.payment_status === 'paid'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : appointment.payment_status === 'partial'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-slate-100 text-slate-700'
+                        )}>
+                          {appointment.payment_status === 'paid' && 'Pago'}
+                          {appointment.payment_status === 'partial' && `Sinal (${formatCurrency(appointment.deposit_amount || 0)})`}
+                          {appointment.payment_status === 'pending' && 'Pendente'}
+                        </span>
+                        {appointment.payment_method && (
+                          <span className="text-[10px] uppercase font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {appointment.payment_method}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500">Valor</p>
+                      <p className="text-xs text-slate-500">Valor Total</p>
                       <p className="font-bold text-emerald-600 text-lg">
                         {formatCurrency(appointment.service_price)}
                       </p>
+                      {appointment.payment_amount > 0 && (
+                        <p className="text-[11px] text-slate-500">
+                          Recebido: {formatCurrency(appointment.payment_amount)}
+                        </p>
+                      )}
                     </div>
                   </div>
 

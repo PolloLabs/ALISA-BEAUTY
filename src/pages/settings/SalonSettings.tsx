@@ -20,7 +20,12 @@ import {
   Bell,
   MessageSquare,
   QrCode,
-  Share2
+  Share2,
+  CreditCard,
+  ShieldCheck,
+  Percent,
+  CheckCircle2,
+  Power
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useSalon } from '@/hooks/useSalon';
@@ -28,7 +33,7 @@ import { ShareBookingLink } from '@/components/ShareBookingLink';
 import { BusinessType } from '@/types';
 import { cn } from '@/lib/utils';
 
-type SettingsTab = 'dados' | 'personalizacao' | 'geral' | 'link';
+type SettingsTab = 'dados' | 'personalizacao' | 'geral' | 'pagamentos' | 'link';
 
 interface LuxuryColorPreset {
   name: string;
@@ -76,6 +81,13 @@ export function SalonSettings() {
     'Olá, [cliente]! Lembramos do seu horário marcado no [salao] para [servico] às [horario]. Nos vemos em breve!'
   );
 
+  // Form State: Pagamentos, Sinal e Status
+  const [paymentEnabled, setPaymentEnabled] = useState<boolean>(false);
+  const [requireDeposit, setRequireDeposit] = useState<boolean>(false);
+  const [depositPercentage, setDepositPercentage] = useState<number>(30);
+  const [fullPaymentDiscount, setFullPaymentDiscount] = useState<number>(5);
+  const [isActive, setIsActive] = useState<boolean>(true);
+
   // File input ref for logo upload
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,6 +104,11 @@ export function SalonSettings() {
       if (salon.business_type) {
         setBusinessType(salon.business_type);
       }
+      setPaymentEnabled(salon.payment_enabled ?? false);
+      setRequireDeposit(salon.require_deposit ?? false);
+      setDepositPercentage(salon.deposit_percentage ?? 30);
+      setFullPaymentDiscount(salon.full_payment_discount ?? 5);
+      setIsActive(salon.is_active ?? true);
     }
   }, [salon]);
 
@@ -177,6 +194,11 @@ export function SalonSettings() {
         logo_url: logoUrl,
         primary_color: primaryColor,
         business_type: businessType,
+        payment_enabled: paymentEnabled,
+        require_deposit: requireDeposit,
+        deposit_percentage: Number(depositPercentage),
+        full_payment_discount: Number(fullPaymentDiscount),
+        is_active: isActive,
       });
 
       if (success) {
@@ -277,6 +299,20 @@ export function SalonSettings() {
           >
             <Sliders className="w-4 h-4" />
             <span>Configurações Gerais</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('pagamentos')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer',
+              activeTab === 'pagamentos'
+                ? 'border-amber-600 text-amber-600 bg-amber-50/50 rounded-t-lg'
+                : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+            )}
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>Pagamento & Sinal</span>
           </button>
 
           <button
@@ -832,6 +868,246 @@ export function SalonSettings() {
                     <p className="text-[11px] text-slate-500">
                       Tags disponíveis: <code className="text-amber-700 font-semibold">[cliente]</code>, <code className="text-amber-700 font-semibold">[salao]</code>, <code className="text-amber-700 font-semibold">[servico]</code>, <code className="text-amber-700 font-semibold">[horario]</code>.
                     </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ABA: PAGAMENTO & SINAL */}
+          {activeTab === 'pagamentos' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Status do Estabelecimento */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-slate-900 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                      <Power className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold font-luxury text-slate-900">
+                        Disponibilidade do Estabelecimento (is_active)
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Controle se o seu estabelecimento está aberto e aceitando agendamentos públicos
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsActive(!isActive)}
+                    className={cn(
+                      'w-12 h-6 rounded-full transition-colors relative cursor-pointer',
+                      isActive ? 'bg-emerald-600' : 'bg-slate-300'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'block w-4 h-4 rounded-full bg-white transition-transform transform shadow-xs',
+                        isActive ? 'translate-x-7' : 'translate-x-1'
+                      )}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3 text-xs">
+                  <span className={cn(
+                    'px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1.5',
+                    isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  )}>
+                    <span className={cn('w-2 h-2 rounded-full', isActive ? 'bg-emerald-500' : 'bg-rose-500')} />
+                    {isActive ? 'Salão Ativo & Aberto para Agendamentos' : 'Salão Pausado / Não Recebendo Agendamentos'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Habilitar Pagamentos & Sinal */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-slate-900 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold font-luxury text-slate-900">
+                        Pagamentos Online & Cobrança de Sinal (payment_enabled)
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Permita pagamentos antecipados e cobrança de caução/sinal para combater faltas (no-shows)
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentEnabled(!paymentEnabled)}
+                    className={cn(
+                      'w-12 h-6 rounded-full transition-colors relative cursor-pointer',
+                      paymentEnabled ? 'bg-amber-600' : 'bg-slate-300'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'block w-4 h-4 rounded-full bg-white transition-transform transform shadow-xs',
+                        paymentEnabled ? 'translate-x-7' : 'translate-x-1'
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* Opções condicionais se o pagamento estiver habilitado */}
+                <div className={cn('space-y-6 transition-opacity', !paymentEnabled && 'opacity-60 pointer-events-none')}>
+                  {/* Exigência obrigatória de depósito */}
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+                    <div className="space-y-0.5 pr-4">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-amber-600" />
+                        <h4 className="text-sm font-bold text-slate-900">
+                          Exigir Sinal Obrigatório para Confirmar (require_deposit)
+                        </h4>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Quando ativo, o agendamento só entra na agenda do profissional após a confirmação do pagamento do sinal.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setRequireDeposit(!requireDeposit)}
+                      className={cn(
+                        'w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0',
+                        requireDeposit ? 'bg-amber-600' : 'bg-slate-300'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'block w-4 h-4 rounded-full bg-white transition-transform transform shadow-xs',
+                          requireDeposit ? 'translate-x-6' : 'translate-x-1'
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Configuração de Porcentagens */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {/* Porcentagem do Sinal */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        Porcentagem do Sinal / Entrada (deposit_percentage)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={5}
+                          max={100}
+                          step={1}
+                          value={depositPercentage}
+                          onChange={(e) => setDepositPercentage(Number(e.target.value))}
+                          className="w-full h-11 pl-4 pr-12 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                          %
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        {[20, 30, 50].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => setDepositPercentage(pct)}
+                            className={cn(
+                              'text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer',
+                              depositPercentage === pct
+                                ? 'bg-amber-100 border-amber-400 text-amber-900 font-bold'
+                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                            )}
+                          >
+                            {pct}% {pct === 30 && '(Padrão)'}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Valor cobrado antecipadamente para segurar o horário na agenda (ex: 30%).
+                      </p>
+                    </div>
+
+                    {/* Desconto para Pagamento Integral */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        Desconto Pagamento 100% à Vista (full_payment_discount)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={0}
+                          max={50}
+                          step={1}
+                          value={fullPaymentDiscount}
+                          onChange={(e) => setFullPaymentDiscount(Number(e.target.value))}
+                          className="w-full h-11 pl-4 pr-12 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                          %
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        {[0, 5, 10].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => setFullPaymentDiscount(pct)}
+                            className={cn(
+                              'text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer',
+                              fullPaymentDiscount === pct
+                                ? 'bg-amber-100 border-amber-400 text-amber-900 font-bold'
+                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                            )}
+                          >
+                            {pct}% {pct === 5 && '(Padrão)'}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Incentivo concedido se o cliente optar por quitar o valor total no agendamento.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Simulador / Preview Visual */}
+                  <div className="p-4 rounded-xl border border-amber-200/70 bg-amber-50/40 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Percent className="w-4 h-4 text-amber-700" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                        Exemplo de Cobrança ao Cliente (Serviço de R$ 100,00)
+                      </h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="bg-white p-3 rounded-lg border border-amber-200/60 shadow-xs">
+                        <span className="text-slate-500 block">Sinal a Pagar ({depositPercentage}%):</span>
+                        <strong className="text-sm font-bold text-slate-900 block mt-0.5">
+                          R$ {(100 * (depositPercentage / 100)).toFixed(2).replace('.', ',')}
+                        </strong>
+                        <span className="text-[10px] text-slate-500">Garante a vaga imediatamente</span>
+                      </div>
+
+                      <div className="bg-white p-3 rounded-lg border border-amber-200/60 shadow-xs">
+                        <span className="text-slate-500 block">Restante no Salão:</span>
+                        <strong className="text-sm font-bold text-slate-900 block mt-0.5">
+                          R$ {(100 - 100 * (depositPercentage / 100)).toFixed(2).replace('.', ',')}
+                        </strong>
+                        <span className="text-[10px] text-slate-500">Pago no dia do atendimento</span>
+                      </div>
+
+                      <div className="bg-white p-3 rounded-lg border border-amber-200/60 shadow-xs">
+                        <span className="text-slate-500 block">Opção à Vista (-{fullPaymentDiscount}%):</span>
+                        <strong className="text-sm font-bold text-emerald-700 block mt-0.5">
+                          R$ {(100 * (1 - fullPaymentDiscount / 100)).toFixed(2).replace('.', ',')}
+                        </strong>
+                        <span className="text-[10px] text-emerald-700 font-medium">Economia de R$ {(100 * (fullPaymentDiscount / 100)).toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

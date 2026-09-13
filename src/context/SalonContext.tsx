@@ -226,6 +226,10 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           open_time: '08:00',
           close_time: '19:00',
           is_active: true,
+          payment_enabled: false,
+          deposit_percentage: 30,
+          full_payment_discount: 5,
+          require_deposit: false,
           created_at: new Date().toISOString(),
         };
         setSalon(defaultSalon);
@@ -279,6 +283,11 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             phone: updated.phone,
             open_time: updated.open_time,
             close_time: updated.close_time,
+            is_active: updated.is_active ?? true,
+            payment_enabled: updated.payment_enabled ?? false,
+            deposit_percentage: updated.deposit_percentage ?? 30,
+            full_payment_discount: updated.full_payment_discount ?? 5,
+            require_deposit: updated.require_deposit ?? false,
           })
           .eq('id', salon.id);
       } catch (err) {
@@ -301,7 +310,11 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       phone: data.phone || '',
       open_time: data.open_time || '08:00',
       close_time: data.close_time || '19:00',
-      is_active: true,
+      is_active: data.is_active ?? true,
+      payment_enabled: data.payment_enabled ?? false,
+      deposit_percentage: data.deposit_percentage ?? 30,
+      full_payment_discount: data.full_payment_discount ?? 5,
+      require_deposit: data.require_deposit ?? false,
       created_at: new Date().toISOString(),
     };
 
@@ -320,7 +333,11 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               phone: newSalon.phone,
               open_time: newSalon.open_time,
               close_time: newSalon.close_time,
-              is_active: true,
+              is_active: newSalon.is_active,
+              payment_enabled: newSalon.payment_enabled,
+              deposit_percentage: newSalon.deposit_percentage,
+              full_payment_discount: newSalon.full_payment_discount,
+              require_deposit: newSalon.require_deposit,
             },
           ])
           .select()

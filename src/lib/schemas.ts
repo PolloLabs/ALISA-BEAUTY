@@ -72,14 +72,31 @@ export type StaffFormData = z.infer<typeof staffSchema>
 export const appointmentSchema = z.object({
   client_name: nameSchema,
   client_phone: phoneSchema,
+  client_email: emailSchema.optional().or(z.literal('')),
   service_id: z.string().min(1, 'Selecione um serviço'),
   staff_id: z.string().min(1, 'Selecione um profissional'),
   date: z.string().min(1, 'Selecione uma data'),
   time: z.string().min(1, 'Selecione um horário'),
+  status: z.enum(['confirmed', 'pending', 'completed', 'canceled']).optional(),
+  payment_status: z.enum(['pending', 'partial', 'paid']).optional(),
+  payment_amount: z.number().min(0).optional(),
+  payment_method: z.enum(['pix', 'card', 'cash', 'boleto']).optional(),
+  deposit_amount: z.number().min(0).optional(),
   notes: z.string().max(500).optional(),
 })
 
 export type AppointmentFormData = z.infer<typeof appointmentSchema>
+
+// Schema de Pagamento do Agendamento
+export const appointmentPaymentSchema = z.object({
+  appointment_id: z.string().uuid().or(z.string().min(1)),
+  amount: z.number().min(0.01, 'Valor deve ser maior que zero'),
+  method: z.enum(['pix', 'card', 'boleto']),
+  status: z.enum(['pending', 'completed', 'failed']).optional(),
+  transaction_id: z.string().optional(),
+})
+
+export type AppointmentPaymentFormData = z.infer<typeof appointmentPaymentSchema>
 
 // Schema de Salão
 export const salonSchema = z.object({
@@ -90,6 +107,10 @@ export const salonSchema = z.object({
   close_time: z.string().min(1, 'Horário de fechamento obrigatório'),
   primary_color: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, 'Cor inválida'),
   logo_url: z.string().nullable().optional(),
+  payment_enabled: z.boolean().optional(),
+  deposit_percentage: z.number().min(0, 'Mínimo 0%').max(100, 'Máximo 100%').optional(),
+  full_payment_discount: z.number().min(0, 'Mínimo 0%').max(100, 'Máximo 100%').optional(),
+  require_deposit: z.boolean().optional(),
 })
 
 export type SalonFormData = z.infer<typeof salonSchema>

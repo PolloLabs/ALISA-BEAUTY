@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Menu, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSalon } from '@/hooks/useSalon'
+import { cn } from '@/lib/utils'
 
 export interface HeaderProps {
   onMenuClick: () => void
@@ -9,7 +10,7 @@ export interface HeaderProps {
 }
 
 export function Header({ onMenuClick, rightActions }: HeaderProps) {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, setRole } = useAuth()
   const { salon } = useSalon()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -97,6 +98,59 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
                   {getRoleLabel(profile?.role)}
                 </p>
               </div>
+
+              <div className="p-2 border-b border-slate-100">
+                <p className="text-[10px] uppercase font-bold text-slate-400 px-2 mb-1 tracking-wider">
+                  Nível de Acesso (Perfil)
+                </p>
+                <div className="grid grid-cols-2 gap-1 text-xs">
+                  <button
+                    onClick={() => {
+                      setRole('super_admin')
+                      setIsDropdownOpen(false)
+                    }}
+                    className={cn(
+                      'px-2 py-1.5 rounded-lg text-left font-medium transition-colors',
+                      profile?.role === 'super_admin' ? 'bg-purple-100 text-purple-900 font-semibold' : 'text-slate-600 hover:bg-slate-50'
+                    )}
+                  >
+                    Super Admin
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRole('owner')
+                      setIsDropdownOpen(false)
+                    }}
+                    className={cn(
+                      'px-2 py-1.5 rounded-lg text-left font-medium transition-colors',
+                      profile?.role === 'owner' ? 'bg-amber-100 text-amber-900 font-semibold' : 'text-slate-600 hover:bg-slate-50'
+                    )}
+                  >
+                    Dono do Salão
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRole('employee')
+                      setIsDropdownOpen(false)
+                    }}
+                    className={cn(
+                      'px-2 py-1.5 rounded-lg text-left font-medium transition-colors',
+                      profile?.role === 'employee' ? 'bg-blue-100 text-blue-900 font-semibold' : 'text-slate-600 hover:bg-slate-50'
+                    )}
+                  >
+                    Profissional
+                  </button>
+                  <a
+                    href="/agendar"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2 py-1.5 rounded-lg text-left font-medium text-emerald-700 hover:bg-emerald-50 transition-colors flex items-center justify-between"
+                  >
+                    Cliente ↗
+                  </a>
+                </div>
+              </div>
+
               <button
                 onClick={() => {
                   signOut()
