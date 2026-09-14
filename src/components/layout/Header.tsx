@@ -119,8 +119,8 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
                 <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900">
                   {getRoleLabel(user?.role)}
                 </span>
-              </div
              </div>
+              
               <button
                 onClick={() => {
                   logout()
