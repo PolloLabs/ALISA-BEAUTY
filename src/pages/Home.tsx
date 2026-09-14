@@ -194,7 +194,7 @@ export function Home() {
         >
           <div className="space-y-4">
             <p className="text-slate-600">
-              Modal do sistema BelezaFlow funcionando com transição suave e responsividade.
+              Modal do sistema ALISA BEAUTY funcionando com transição suave e responsividade.
             </p>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>
