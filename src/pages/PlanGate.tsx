@@ -94,10 +94,6 @@ export const PlanGate: React.FC<PlanGateProps> = ({ onPlanActivated }) => {
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-luxury">
             Escolha o Plano do seu Salão
           </h1>
-          <p className="text-sm sm:text-base text-slate-400">
-            Olá, <span className="text-amber-400 font-semibold">{user?.fullName || 'Proprietário(a)'}</span>! 
-            Para desbloquear o acesso total ao painel do seu salão, selecione um plano abaixo e realize a ativação.
-          </p>
         </div>
 
         {/* Cards de Planos */}
