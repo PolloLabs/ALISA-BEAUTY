@@ -138,41 +138,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
           </a>
         </div>
-
-        {/* Footer info & Role Badge */}
-        <div className="p-3.5 border-t border-slate-200/80 bg-slate-50/70 space-y-2">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span className="font-medium text-slate-700">{config.label}</span>
-            <span className="text-amber-600 font-semibold">• Ativo</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-slate-200/80 text-[10px] font-semibold text-slate-700">
-            {role === 'super_admin' && (
-              <>
-                <ShieldCheck className="w-3 h-3 text-purple-600" />
-                <span className="text-purple-900">Super Admin</span>
-              </>
-            )}
-            {role === 'owner' && (
-              <>
-                <Briefcase className="w-3 h-3 text-amber-600" />
-                <span className="text-amber-900">Dono do Salão</span>
-              </>
-            )}
-            {role === 'employee' && (
-              <>
-                <Users className="w-3 h-3 text-blue-600" />
-                <span className="text-blue-900">Profissional (Acesso Restrito)</span>
-              </>
-            )}
-            {role === 'client' && (
-              <>
-                <Sparkles className="w-3 h-3 text-emerald-600" />
-                <span className="text-emerald-900">Cliente</span>
-              </>
-            )}
-          </div>
-        </div>
       </aside>
     </>
   )
