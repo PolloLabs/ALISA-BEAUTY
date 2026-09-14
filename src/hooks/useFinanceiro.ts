@@ -15,6 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { useSalon } from '@/hooks/useSalon';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Appointment } from '@/types';
+import { safeStorageGet } from '@/lib/utils';
 
 export type FinancialPeriod = 'current_month' | 'previous_month' | 'last_30_days' | 'custom';
 
@@ -160,9 +161,8 @@ export function useFinanceiro(): UseFinanceiroReturn {
 
     // 1.1 Buscar do LocalStorage (cadastrados via Equipe / useStaff)
     try {
-      const rawStaff = localStorage.getItem('belezaflow_staff');
-      if (rawStaff) {
-        const parsed = JSON.parse(rawStaff) as LocalStaffItem[];
+      const parsed = safeStorageGet<LocalStaffItem[]>('belezaflow_staff', []);
+      if (Array.isArray(parsed) && parsed.length > 0) {
         parsed.forEach((s) => {
           const name = s.full_name || s.name || 'Profissional';
           const rate = typeof s.commission_rate === 'number' ? s.commission_rate : 50;

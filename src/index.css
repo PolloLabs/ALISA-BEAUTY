@@ -4,6 +4,19 @@
   --primary-color: #d97706; /* Dourado / Amber 600 */
   --primary-dark: #0f172a;  /* Preto nobre / Slate 900 */
   --gold-accent: #f59e0b;
+  --toast-bg: #ffffff;
+  --toast-color: #1e293b;
+  --toast-border: #e2e8f0;
+}
+
+html.dark {
+  color-scheme: dark;
+  --primary-color: #D4AF37;
+  --primary-dark: #0b0b0f;
+  --gold-accent: #D4AF37;
+  --toast-bg: #16161d;
+  --toast-color: #f8fafc;
+  --toast-border: #D4AF37;
 }
 
 @layer base {
@@ -55,3 +68,196 @@
 .focus\:ring-primary:focus {
   --tw-ring-color: var(--primary-color);
 }
+
+/* ==========================================================================
+   TEMA NOTURNO DE ALTO LUXO (#0b0b0f fundo / #16161d cards / #D4AF37 dourado)
+   ========================================================================== */
+
+/* Fundo da Página e Layouts Globais */
+html.dark body,
+html.dark .bg-slate-50,
+html.dark .min-h-screen.bg-slate-50,
+html.dark main {
+  background-color: #0b0b0f !important;
+  color: #f8fafc !important;
+}
+
+/* Header & Sidebar */
+html.dark header,
+html.dark aside,
+html.dark aside > div,
+html.dark .bg-white.border-b,
+html.dark .bg-white.border-r {
+  background-color: #16161d !important;
+  border-color: #262633 !important;
+}
+
+/* Cards e Superfícies Elevadas */
+html.dark .bg-white,
+html.dark [class*="rounded-2xl"][class*="bg-white"],
+html.dark [class*="rounded-xl"][class*="bg-white"],
+html.dark [class*="rounded-lg"][class*="bg-white"] {
+  background-color: #16161d !important;
+}
+
+/* Bordas Sutis e Delicadas em Ébano */
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-300,
+html.dark .border-slate-200\/80,
+html.dark .border-slate-200\/70,
+html.dark .border-slate-200\/60,
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #262633 !important;
+}
+
+/* Tipografia em Modo Noturno */
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700,
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Inputs, Selects e Textareas */
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+html.dark select,
+html.dark textarea {
+  background-color: #1a1a24 !important;
+  color: #f8fafc !important;
+  border-color: #2e2e3f !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: #D4AF37 !important;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25) !important;
+}
+
+html.dark select option {
+  background-color: #16161d !important;
+  color: #f8fafc !important;
+}
+
+/* Tabelas */
+html.dark table {
+  color: #f8fafc !important;
+}
+
+html.dark thead,
+html.dark thead tr,
+html.dark th {
+  background-color: #121218 !important;
+  color: #cbd5e1 !important;
+  border-color: #262633 !important;
+}
+
+html.dark tbody tr {
+  background-color: #16161d !important;
+  border-color: #262633 !important;
+}
+
+html.dark tbody tr:hover {
+  background-color: #1d1d28 !important;
+}
+
+html.dark td {
+  border-color: #262633 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Modais e Caixas de Diálogo */
+html.dark .fixed [class*="bg-white"],
+html.dark [role="dialog"],
+html.dark .modal-content {
+  background-color: #16161d !important;
+  border-color: #2e2e3f !important;
+  color: #f8fafc !important;
+}
+
+html.dark .fixed .border-b,
+html.dark .fixed .border-t {
+  border-color: #262633 !important;
+}
+
+/* Toasts de Notificação */
+html.dark [data-toaster] > div,
+html.dark [role="status"],
+html.dark .react-hot-toast {
+  background-color: #16161d !important;
+  color: #f8fafc !important;
+  border: 1px solid #D4AF37 !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.75) !important;
+}
+
+/* Elementos e Badges com Dourado #D4AF37 */
+html.dark .bg-amber-50,
+html.dark .bg-amber-50\/30,
+html.dark .bg-amber-50\/40,
+html.dark .bg-amber-50\/50 {
+  background-color: rgba(212, 175, 55, 0.12) !important;
+}
+
+html.dark .bg-amber-100 {
+  background-color: rgba(212, 175, 55, 0.22) !important;
+}
+
+html.dark .border-amber-200,
+html.dark .border-amber-200\/60,
+html.dark .border-amber-200\/70,
+html.dark .border-amber-200\/80 {
+  border-color: rgba(212, 175, 55, 0.35) !important;
+}
+
+html.dark .text-amber-600,
+html.dark .text-amber-700,
+html.dark .text-amber-800,
+html.dark .text-amber-900 {
+  color: #D4AF37 !important;
+}
+
+/* Estados de Hover e Fundo Secundário */
+html.dark .hover\:bg-slate-100:hover,
+html.dark .hover\:bg-slate-50:hover {
+  background-color: #21212e !important;
+}
+
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/80,
+html.dark .bg-slate-50\/50 {
+  background-color: #1a1a24 !important;
+}
+
+/* Scrollbars em Modo Noturno */
+html.dark ::-webkit-scrollbar-track {
+  background: #0b0b0f !important;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #2a2a3a !important;
+  border-radius: 9999px;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #D4AF37 !important;
+}
+

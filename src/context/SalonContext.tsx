@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Appointment, AppointmentStatus, Professional, Service, Salon } from '../types';
 import { initialAppointments, initialProfessionals, initialServices, isSupabaseConfigured, supabase } from '../lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { safeStorageGet, safeStorageSet } from '../lib/utils';
 
 export interface SalonContextType {
   salon: Salon | null;
@@ -52,22 +53,46 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const [services, setServices] = useState<Service[]>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_SERVICES);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return initialServices;
-      }
-    }
-    return initialServices;
+    return safeStorageGet<Service[]>(LOCAL_STORAGE_KEY_SERVICES, initialServices);
   });
 
   const [professionals, setProfessionals] = useState<Professional[]>(() => {
     try {
-      const raw = localStorage.getItem('belezaflow_staff');
-      if (raw) {
-        const staffList = JSON.parse(raw);
+      const staffList = safeStorageGet<any[]>('belezaflow_staff', []);
+      if (Array.isArray(staffList) && staffList.length > 0) {
+        interface RawStaff {
+          id: string;
+          full_name?: string;
+          name?: string;
+          job_title?: string;
+          role?: string;
+          phone?: string;
+          avatar_url?: string;
+          avatar?: string;
+          is_active?: boolean;
+        }
+        return (staffList as RawStaff[])
+          .filter((s) => s.is_active !== false)
+          .map((s) => ({
+            id: s.id,
+            name: s.full_name || s.name || 'Profissional',
+            role: s.job_title || s.role || 'Especialista',
+            phone: s.phone || '',
+            avatar: s.avatar_url || s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+            specialties: [s.job_title || 'Atendimento'],
+            rating: 5.0,
+          }));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return initialProfessionals;
+  });
+
+  useEffect(() => {
+    const handleSyncStaff = () => {
+      try {
+        const staffList = safeStorageGet<any[]>('belezaflow_staff', []);
         if (Array.isArray(staffList) && staffList.length > 0) {
           interface RawStaff {
             id: string;
@@ -80,57 +105,19 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             avatar?: string;
             is_active?: boolean;
           }
-          return (staffList as RawStaff[])
-            .filter((s) => s.is_active !== false)
-            .map((s) => ({
-              id: s.id,
-              name: s.full_name || s.name || 'Profissional',
-              role: s.job_title || s.role || 'Especialista',
-              phone: s.phone || '',
-              avatar: s.avatar_url || s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-              specialties: [s.job_title || 'Atendimento'],
-              rating: 5.0,
-            }));
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return initialProfessionals;
-  });
-
-  useEffect(() => {
-    const handleSyncStaff = () => {
-      try {
-        const raw = localStorage.getItem('belezaflow_staff');
-        if (raw) {
-          const staffList = JSON.parse(raw);
-          if (Array.isArray(staffList) && staffList.length > 0) {
-            interface RawStaff {
-              id: string;
-              full_name?: string;
-              name?: string;
-              job_title?: string;
-              role?: string;
-              phone?: string;
-              avatar_url?: string;
-              avatar?: string;
-              is_active?: boolean;
-            }
-            setProfessionals(
-              (staffList as RawStaff[])
-                .filter((s) => s.is_active !== false)
-                .map((s) => ({
-                  id: s.id,
-                  name: s.full_name || s.name || 'Profissional',
-                  role: s.job_title || s.role || 'Especialista',
-                  phone: s.phone || '',
-                  avatar: s.avatar_url || s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-                  specialties: [s.job_title || 'Atendimento'],
-                  rating: 5.0,
-                }))
-            );
-          }
+          setProfessionals(
+            (staffList as RawStaff[])
+              .filter((s) => s.is_active !== false)
+              .map((s) => ({
+                id: s.id,
+                name: s.full_name || s.name || 'Profissional',
+                role: s.job_title || s.role || 'Especialista',
+                phone: s.phone || '',
+                avatar: s.avatar_url || s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+                specialties: [s.job_title || 'Atendimento'],
+                rating: 5.0,
+              }))
+          );
         }
       } catch (err) {
         console.error('Erro ao sincronizar profissionais:', err);
@@ -146,15 +133,13 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_APPOINTMENTS);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return initialAppointments;
-      }
+    const saved = safeStorageGet<Appointment[]>(LOCAL_STORAGE_KEY_APPOINTMENTS, []);
+    // Garantir que todos os mocks antigos ('apt-1' a 'apt-6', ou '1' a '4') sejam purgados
+    const mockIds = ['apt-1', 'apt-2', 'apt-3', 'apt-4', 'apt-5', 'apt-6', '1', '2', '3', '4'];
+    if (Array.isArray(saved)) {
+      return saved.filter((a) => a && !mockIds.includes(a.id));
     }
-    return initialAppointments;
+    return [];
   });
 
   // Atualiza cor dinâmica global no CSS root
@@ -190,7 +175,7 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             const { staff: _, ...salonData } = data as Record<string, unknown>;
             const parsedSalon = salonData as unknown as Salon;
             setSalon(parsedSalon);
-            localStorage.setItem(LOCAL_STORAGE_SALON_KEY, JSON.stringify(parsedSalon));
+            safeStorageSet(LOCAL_STORAGE_SALON_KEY, parsedSalon);
             applyPrimaryColor(parsedSalon.primary_color);
             return;
           }
@@ -200,16 +185,11 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
 
       // Modo local / fallback com dados salvos no navegador
-      const savedSalon = localStorage.getItem(LOCAL_STORAGE_SALON_KEY);
+      const savedSalon = safeStorageGet<Salon | null>(LOCAL_STORAGE_SALON_KEY, null);
       if (savedSalon) {
-        try {
-          const parsed = JSON.parse(savedSalon) as Salon;
-          setSalon(parsed);
-          applyPrimaryColor(parsed.primary_color);
-          return;
-        } catch {
-          // prossegue para criar padrão
-        }
+        setSalon(savedSalon);
+        applyPrimaryColor(savedSalon.primary_color);
+        return;
       }
 
       // Se o usuário tem um nome de salão vinculado ao seu perfil, inicializa automaticamente
@@ -233,7 +213,7 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           created_at: new Date().toISOString(),
         };
         setSalon(defaultSalon);
-        localStorage.setItem(LOCAL_STORAGE_SALON_KEY, JSON.stringify(defaultSalon));
+        safeStorageSet(LOCAL_STORAGE_SALON_KEY, defaultSalon);
         applyPrimaryColor(defaultSalon.primary_color);
       } else {
         setSalon(null);
@@ -251,7 +231,7 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [user]);
 
   const refreshSalon = async () => {
-    setLoading(true);
+    // Atualiza silenciosamente sem ativar tela de loading para evitar flash branco
     await fetchSalon();
   };
 
@@ -264,7 +244,7 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     setSalon(updated);
-    localStorage.setItem(LOCAL_STORAGE_SALON_KEY, JSON.stringify(updated));
+    safeStorageSet(LOCAL_STORAGE_SALON_KEY, updated);
 
     if (updated.primary_color) {
       applyPrimaryColor(updated.primary_color);
@@ -346,7 +326,7 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (!error && inserted) {
           const createdDbSalon = inserted as Salon;
           setSalon(createdDbSalon);
-          localStorage.setItem(LOCAL_STORAGE_SALON_KEY, JSON.stringify(createdDbSalon));
+          safeStorageSet(LOCAL_STORAGE_SALON_KEY, createdDbSalon);
           applyPrimaryColor(createdDbSalon.primary_color);
           return createdDbSalon;
         }
@@ -356,18 +336,18 @@ export const SalonProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
 
     setSalon(newSalon);
-    localStorage.setItem(LOCAL_STORAGE_SALON_KEY, JSON.stringify(newSalon));
+    safeStorageSet(LOCAL_STORAGE_SALON_KEY, newSalon);
     applyPrimaryColor(newSalon.primary_color);
     return newSalon;
   };
 
   // Sync to local storage
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_APPOINTMENTS, JSON.stringify(appointments));
+    safeStorageSet(LOCAL_STORAGE_KEY_APPOINTMENTS, appointments);
   }, [appointments]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_SERVICES, JSON.stringify(services));
+    safeStorageSet(LOCAL_STORAGE_KEY_SERVICES, services);
   }, [services]);
 
   const addAppointment = async (newAptData: Omit<Appointment, 'id' | 'created_at'>): Promise<boolean> => {

@@ -46,16 +46,24 @@ export class ErrorBoundary extends Component<Props, State> {
               Ops! Algo deu errado
             </h2>
             <p className="text-sm text-slate-600 mb-6">
-              Ocorreu um erro inesperado. Tente recarregar a página.
+              Ocorreu uma instabilidade temporária. Clique abaixo para tentar novamente.
             </p>
             <div className="flex gap-2 justify-center">
               <Button 
                 variant="outline" 
-                onClick={() => window.location.reload()}
+                onClick={() => this.setState({ hasError: false, error: null })}
               >
-                Recarregar página
+                Tentar novamente
               </Button>
-              <Button onClick={() => window.location.href = '/'}>
+              <Button 
+                onClick={() => {
+                  this.setState({ hasError: false, error: null })
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState({}, '', '/')
+                    window.dispatchEvent(new PopStateEvent('popstate'))
+                  }
+                }}
+              >
                 Ir para o início
               </Button>
             </div>

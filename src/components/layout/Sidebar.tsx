@@ -5,7 +5,7 @@ import {
   CalendarDays,
   UserCheck,
   Scissors, 
-  Settings,
+  Settings, 
   DollarSign,
   X,
   Sparkles,
@@ -24,20 +24,10 @@ export interface SidebarProps {
   onClose: () => void
 }
 
-const menuItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/agenda', label: 'Agenda', icon: Calendar },
-  { to: '/agenda-visual', label: 'Agenda Visual', icon: CalendarDays },
-  { to: '/servicos', label: 'Serviços', icon: Scissors },
-  { to: '/financeiro', label: 'Financeiro', icon: DollarSign },
-  { to: '/equipe', label: 'Equipe', icon: UserCheck },
-  { to: '/configuracoes/salao', label: 'Configurações', icon: Settings },
-]
-
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation()
   const { salon } = useSalon()
-  const { profile } = useAuth()
+  const { user } = useAuth()
 
   const handleNavClick = () => {
     if (window.innerWidth < 768) {
@@ -47,7 +37,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const config = getBusinessConfig(salon?.business_type || 'beauty_salon')
   const LogoIcon = config.icon || Sparkles
-  const role = profile?.role || 'owner'
+  const role = user?.role || 'owner'
+
+  // Restrição de rotas por perfil:
+  // - Profissional (employee): NÃO vê financeiro, equipe, configurações. Vê APENAS sua agenda (/agenda) e agenda visual (/agenda-visual).
+  // - Super Admin: Vê Gestão Geral (/admin), Dashboard (/), Agenda (/agenda), etc.
+  // - Dono (owner): Vê tudo do salão.
+  const menuItems = [
+    ...(role === 'super_admin' ? [{ to: '/admin', label: 'Painel Geral', icon: ShieldCheck }] : []),
+    ...(role !== 'employee' ? [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
+    { to: '/agenda', label: role === 'employee' ? 'Minha Agenda' : 'Agenda', icon: Calendar },
+    { to: '/agenda-visual', label: 'Agenda Visual', icon: CalendarDays },
+    ...(role !== 'employee' ? [{ to: '/servicos', label: 'Serviços', icon: Scissors }] : []),
+    ...(role !== 'employee' ? [{ to: '/financeiro', label: 'Financeiro', icon: DollarSign }] : []),
+    ...(role !== 'employee' ? [{ to: '/equipe', label: 'Equipe', icon: UserCheck }] : []),
+    ...(role !== 'employee' ? [{ to: '/configuracoes/salao', label: 'Configurações', icon: Settings }] : []),
+  ]
 
   return (
     <>
@@ -76,10 +81,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div className="min-w-0 flex-1">
               <span className="font-luxury font-bold text-slate-900 block truncate text-base tracking-tight leading-none">
-                {salon?.name || 'BelezaFlow'}
+                {role === 'super_admin' ? 'BelezaFlow SaaS' : salon?.name || 'Studio BelezaFlow'}
               </span>
               <span className="text-[10px] uppercase tracking-widest text-amber-600 font-semibold mt-1 block">
-                Gestão Luxo
+                {role === 'super_admin' ? 'Super Admin' : role === 'employee' ? 'Espaço Profissional' : 'Gestão do Salão'}
               </span>
             </div>
           </div>
@@ -145,25 +150,25 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             {role === 'super_admin' && (
               <>
                 <ShieldCheck className="w-3 h-3 text-purple-600" />
-                <span className="text-purple-900">Modo: Super Admin</span>
+                <span className="text-purple-900">Super Admin</span>
               </>
             )}
             {role === 'owner' && (
               <>
                 <Briefcase className="w-3 h-3 text-amber-600" />
-                <span className="text-amber-900">Modo: Dono do Salão</span>
+                <span className="text-amber-900">Dono do Salão</span>
               </>
             )}
             {role === 'employee' && (
               <>
                 <Users className="w-3 h-3 text-blue-600" />
-                <span className="text-blue-900">Modo: Profissional</span>
+                <span className="text-blue-900">Profissional (Acesso Restrito)</span>
               </>
             )}
             {role === 'client' && (
               <>
                 <Sparkles className="w-3 h-3 text-emerald-600" />
-                <span className="text-emerald-900">Modo: Cliente</span>
+                <span className="text-emerald-900">Cliente</span>
               </>
             )}
           </div>

@@ -6,6 +6,7 @@ import {
   Save, 
   Upload, 
   X, 
+  Plus,
   Clock, 
   MapPin, 
   Phone, 
@@ -31,9 +32,43 @@ import { toast } from 'react-hot-toast';
 import { useSalon } from '@/hooks/useSalon';
 import { ShareBookingLink } from '@/components/ShareBookingLink';
 import { BusinessType } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, safeStorageGet } from '@/lib/utils';
 
 type SettingsTab = 'dados' | 'personalizacao' | 'geral' | 'pagamentos' | 'link';
+
+export interface CustomSegment {
+  id: string;
+  label: string;
+  desc?: string;
+  isDefault?: boolean;
+}
+
+export const DEFAULT_SEGMENTS: CustomSegment[] = [
+  {
+    id: 'beauty_salon',
+    label: 'Salão de Beleza',
+    desc: 'Cabelos, escova, mechas & maquiagem',
+    isDefault: true,
+  },
+  {
+    id: 'barbershop',
+    label: 'Barbearia Clássica',
+    desc: 'Corte masculino, barba & terapia capilar',
+    isDefault: true,
+  },
+  {
+    id: 'unisex',
+    label: 'Studio Unissex',
+    desc: 'Atendimento integrado e multi-serviços',
+    isDefault: true,
+  },
+  {
+    id: 'nail_studio',
+    label: 'Nail Designer',
+    desc: 'Alongamento, esmaltação & estética',
+    isDefault: true,
+  },
+];
 
 interface LuxuryColorPreset {
   name: string;
@@ -69,11 +104,17 @@ export function SalonSettings() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState('#d97706');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem('belezaflow_theme') === 'dark';
+    return localStorage.getItem('theme') === 'dark' || localStorage.getItem('belezaflow_theme') === 'dark';
   });
 
-  // Form State: Configurações Gerais
-  const [businessType, setBusinessType] = useState<BusinessType>('beauty_salon');
+  // Form State: Configurações Gerais & Segmentos Customizados
+  const [customSegments, setCustomSegments] = useState<CustomSegment[]>(() => {
+    return safeStorageGet<CustomSegment[]>('custom_segments', []);
+  });
+  const [newSegmentName, setNewSegmentName] = useState('');
+  const [businessType, setBusinessType] = useState<string>(() => {
+    return localStorage.getItem('selected_segment') || 'beauty_salon';
+  });
   const [appointmentInterval, setAppointmentInterval] = useState<number>(30);
   const [autoConfirm, setAutoConfirm] = useState<boolean>(true);
   const [whatsappNotifications, setWhatsappNotifications] = useState<boolean>(true);
@@ -101,7 +142,10 @@ export function SalonSettings() {
       setCloseTime(salon.close_time?.substring(0, 5) || '19:00');
       setLogoUrl(salon.logo_url || null);
       setPrimaryColor(salon.primary_color || '#d97706');
-      if (salon.business_type) {
+      const savedSeg = localStorage.getItem('selected_segment');
+      if (savedSeg) {
+        setBusinessType(savedSeg);
+      } else if (salon.business_type) {
         setBusinessType(salon.business_type);
       }
       setPaymentEnabled(salon.payment_enabled ?? false);
@@ -158,12 +202,68 @@ export function SalonSettings() {
   // Handle dark mode toggle
   const handleThemeToggle = (enableDark: boolean) => {
     setIsDarkMode(enableDark);
-    localStorage.setItem('belezaflow_theme', enableDark ? 'dark' : 'light');
+    const themeStr = enableDark ? 'dark' : 'light';
+    localStorage.setItem('theme', themeStr);
+    localStorage.setItem('belezaflow_theme', themeStr);
     if (enableDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+    window.dispatchEvent(new CustomEvent('theme-change', { detail: themeStr }));
+  };
+
+  // Handlers para Segmentos de Atuação
+  const handleSelectSegment = (id: string) => {
+    setBusinessType(id);
+    localStorage.setItem('selected_segment', id);
+  };
+
+  const handleAddSegment = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = newSegmentName.trim();
+
+    if (!trimmed) {
+      toast.error('Informe o nome do novo segmento');
+      return;
+    }
+
+    const allSegments = [...DEFAULT_SEGMENTS, ...customSegments];
+    const isDuplicate = allSegments.some(
+      (s) => s.label.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      toast.error('Já existe um segmento com este nome');
+      return;
+    }
+
+    const newId = `custom_${Date.now()}_${trimmed.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const newSegment: CustomSegment = {
+      id: newId,
+      label: trimmed,
+      desc: 'Segmento personalizado do estabelecimento',
+      isDefault: false,
+    };
+
+    const updated = [...customSegments, newSegment];
+    setCustomSegments(updated);
+    localStorage.setItem('custom_segments', JSON.stringify(updated));
+    setNewSegmentName('');
+    handleSelectSegment(newId);
+    toast.success(`Segmento "${trimmed}" adicionado com sucesso!`);
+  };
+
+  const handleRemoveSegment = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = customSegments.filter((s) => s.id !== id);
+    setCustomSegments(updated);
+    localStorage.setItem('custom_segments', JSON.stringify(updated));
+
+    if (businessType === id) {
+      handleSelectSegment('beauty_salon');
+    }
+    toast.success('Segmento removido com sucesso');
   };
 
   // Save Settings Form Handler
@@ -185,6 +285,20 @@ export function SalonSettings() {
 
     setIsSaving(true);
     try {
+      // Persistir tema no localStorage
+      const themeStr = isDarkMode ? 'dark' : 'light';
+      localStorage.setItem('theme', themeStr);
+      localStorage.setItem('belezaflow_theme', themeStr);
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
+      // Persistir segmentos customizados e segmento selecionado
+      localStorage.setItem('custom_segments', JSON.stringify(customSegments));
+      localStorage.setItem('selected_segment', businessType);
+
       const success = await updateSalon({
         name: name.trim(),
         phone: phone.trim() || null,
@@ -193,7 +307,7 @@ export function SalonSettings() {
         close_time: closeTime,
         logo_url: logoUrl,
         primary_color: primaryColor,
-        business_type: businessType,
+        business_type: businessType as BusinessType,
         payment_enabled: paymentEnabled,
         require_deposit: requireDeposit,
         deposit_percentage: Number(depositPercentage),
@@ -678,7 +792,7 @@ export function SalonSettings() {
           {/* ABA 3: CONFIGURAÇÕES GERAIS */}
           {activeTab === 'geral' && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Tipo de Estabelecimento */}
+              {/* Tipo de Estabelecimento / Segmento de Atuação */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
                 <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
                   <div className="w-8 h-8 rounded-lg bg-slate-900 border border-amber-500/30 flex items-center justify-center text-amber-500">
@@ -694,50 +808,78 @@ export function SalonSettings() {
                   </div>
                 </div>
 
+                {/* Adicionar Novo Segmento */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Nome do novo segmento
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <input
+                      type="text"
+                      value={newSegmentName}
+                      onChange={(e) => setNewSegmentName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddSegment();
+                        }
+                      }}
+                      placeholder="Ex: Estética Avançada, Podologia, Spa & Massoterapia..."
+                      className="flex-1 h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddSegment()}
+                      className="flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 text-xs font-semibold border border-slate-800 shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Adicionar segmento</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grid de Segmentos Padrão e Customizados */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {[
-                    {
-                      id: 'beauty_salon',
-                      label: 'Salão de Beleza',
-                      desc: 'Cabelos, escova, mechas & maquiagem',
-                    },
-                    {
-                      id: 'barbershop',
-                      label: 'Barbearia Clássica',
-                      desc: 'Corte masculino, barba & terapia capilar',
-                    },
-                    {
-                      id: 'unisex',
-                      label: 'Studio Unissex',
-                      desc: 'Atendimento integrado e multi-serviços',
-                    },
-                    {
-                      id: 'nail_studio',
-                      label: 'Nail Designer',
-                      desc: 'Alongamento, esmaltação & estética',
-                    },
-                  ].map((item) => {
+                  {[...DEFAULT_SEGMENTS, ...customSegments].map((item) => {
                     const isSelected = businessType === item.id;
                     return (
-                      <button
+                      <div
                         key={item.id}
-                        type="button"
-                        onClick={() => setBusinessType(item.id as BusinessType)}
+                        onClick={() => handleSelectSegment(item.id)}
                         className={cn(
-                          'p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
+                          'relative p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between group',
                           isSelected
                             ? 'border-amber-600 bg-amber-50/40 ring-1 ring-amber-600 shadow-xs'
                             : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                         )}
                       >
                         <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-slate-900">{item.label}</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="text-xs font-bold text-slate-900 truncate">
+                              {item.label}
+                            </span>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {isSelected && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                              {!item.isDefault && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleRemoveSegment(item.id, e)}
+                                  title="Remover segmento"
+                                  className="w-5 h-5 rounded-full bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-600 flex items-center justify-center transition-colors cursor-pointer"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <p className="text-[11px] text-slate-500 leading-snug">{item.desc}</p>
                         </div>
-                      </button>
+                        {!item.isDefault && (
+                          <span className="mt-2 text-[10px] font-semibold text-amber-600 uppercase tracking-wider block">
+                            Customizado
+                          </span>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

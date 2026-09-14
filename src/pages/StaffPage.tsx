@@ -65,6 +65,7 @@ export function StaffPage() {
         full_name: data.full_name,
         phone: data.phone,
         email: data.email || undefined,
+        password: data.password || undefined,
         job_title: data.job_title,
         commission_rate: data.commission_rate,
       })
@@ -73,6 +74,7 @@ export function StaffPage() {
         full_name: data.full_name,
         phone: data.phone,
         email: data.email || undefined,
+        password: data.password || undefined,
         job_title: data.job_title,
         commission_rate: data.commission_rate,
       })

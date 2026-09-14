@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Payment } from '@/types'
 import { toast } from 'react-hot-toast'
+import { safeStorageGet, safeStorageSet } from '@/lib/utils'
 
 export interface UsePaymentsReturn {
   payments: Payment[]
@@ -25,42 +26,11 @@ export interface UsePaymentsReturn {
 const LOCAL_STORAGE_PAYMENTS_KEY = 'belezaflow_payments'
 
 function getLocalPayments(): Payment[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_PAYMENTS_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch (e) {
-    console.error('Error reading local payments:', e)
-  }
-  return [
-    {
-      id: 'pay-1',
-      appointment_id: '1',
-      amount: 130,
-      method: 'pix',
-      status: 'completed',
-      transaction_id: 'tx_pix_987654321',
-      paid_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'pay-2',
-      appointment_id: '2',
-      amount: 18,
-      method: 'card',
-      status: 'completed',
-      transaction_id: 'ch_card_123456789',
-      paid_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    }
-  ]
+  return safeStorageGet<Payment[]>(LOCAL_STORAGE_PAYMENTS_KEY, [])
 }
 
 function saveLocalPayments(list: Payment[]) {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_PAYMENTS_KEY, JSON.stringify(list))
-  } catch (e) {
-    console.error('Error saving local payments:', e)
-  }
+  safeStorageSet(LOCAL_STORAGE_PAYMENTS_KEY, list)
 }
 
 export function usePayments(): UsePaymentsReturn {

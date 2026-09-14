@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Menu, LogOut } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { Menu, LogOut, Shield } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSalon } from '@/hooks/useSalon'
-import { cn } from '@/lib/utils'
 
 export interface HeaderProps {
   onMenuClick: () => void
@@ -10,10 +10,26 @@ export interface HeaderProps {
 }
 
 export function Header({ onMenuClick, rightActions }: HeaderProps) {
-  const { profile, signOut, setRole } = useAuth()
+  const location = useLocation()
+  const { user, logout } = useAuth()
   const { salon } = useSalon()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const getPageTitle = () => {
+    const path = location.pathname
+    if (path === '/admin') return 'Dashboard'
+    if (path === '/') return 'Dashboard'
+    if (path === '/agenda') return user?.role === 'employee' ? 'Minha Agenda' : 'Agenda'
+    if (path === '/agenda-visual') return 'Agenda Visual'
+    if (path.startsWith('/servicos')) return 'Serviços'
+    if (path.startsWith('/financeiro')) return 'Financeiro'
+    if (path.startsWith('/equipe')) return 'Equipe'
+    if (path.startsWith('/clientes')) return 'Clientes'
+    if (path.startsWith('/configuracoes')) return 'Configurações'
+    if (path.startsWith('/home')) return 'Home'
+    return 'Dashboard'
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -27,20 +43,18 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
 
   const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U'
-    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+    return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
   }
 
   const getRoleLabel = (role: string | undefined) => {
     const labels: Record<string, string> = {
-      super_admin: 'Administrador',
-      owner: 'Proprietário',
+      super_admin: 'Super Admin',
+      owner: 'Dono(a) do Salão',
       employee: 'Profissional',
       client: 'Cliente',
     }
-    return labels[role || 'client'] || 'Usuário'
+    return labels[role || 'owner'] || 'Usuário'
   }
-
-  const primaryColor = salon?.primary_color || '#f43f5e'
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
@@ -53,19 +67,24 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </button>
 
-        {/* Breadcrumb Minimalista */}
-        <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-500">
-          <span className="text-slate-400">Painel</span>
-          <span className="text-slate-300">/</span>
-          <span className="font-semibold text-slate-900 tracking-wide">
-            {salon?.name || 'BelezaFlow'}
-          </span>
-          <span className="text-amber-600/80 text-[10px] ml-1">✦</span>
-        </div>
+        {/* Título da Página Atual */}
+        <h1 className="text-sm sm:text-base font-semibold text-slate-900 tracking-tight">
+          {getPageTitle()}
+        </h1>
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
         {rightActions}
+
+        {/* Botão de Logout Rápido */}
+        <button
+          onClick={logout}
+          className="hidden sm:flex items-center gap-1.5 h-9 px-3 rounded-lg border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-600 text-sm font-medium transition-colors cursor-pointer"
+          title="Sair da conta"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sair</span>
+        </button>
 
         {/* Perfil do Usuário */}
         <div className="relative" ref={dropdownRef}>
@@ -76,14 +95,14 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
             <div 
               className="h-8 w-8 rounded-xl bg-slate-900 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xs font-bold shadow-xs flex-shrink-0"
             >
-              {getInitials(profile?.full_name)}
+              {getInitials(user?.fullName)}
             </div>
             <div className="hidden md:block text-left">
               <p className="text-xs font-semibold text-slate-900 leading-tight">
-                {profile?.full_name || 'Usuário'}
+                {user?.fullName || 'Usuário'}
               </p>
               <p className="text-[11px] text-amber-700/90 leading-tight font-medium">
-                {getRoleLabel(profile?.role)}
+                {getRoleLabel(user?.role)}
               </p>
             </div>
           </button>
@@ -92,74 +111,32 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
             <div className="absolute right-0 top-full mt-1.5 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
               <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/50">
                 <p className="text-sm font-semibold text-slate-900 truncate">
-                  {profile?.full_name}
+                  {user?.fullName || 'Usuário'}
                 </p>
-                <p className="text-xs text-amber-700 font-medium truncate mt-0.5">
-                  {getRoleLabel(profile?.role)}
+                <p className="text-xs text-slate-500 truncate mt-0.5">
+                  {user?.email}
                 </p>
+                <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900">
+                  {getRoleLabel(user?.role)}
+                </span>
               </div>
 
-              <div className="p-2 border-b border-slate-100">
-                <p className="text-[10px] uppercase font-bold text-slate-400 px-2 mb-1 tracking-wider">
-                  Nível de Acesso (Perfil)
-                </p>
-                <div className="grid grid-cols-2 gap-1 text-xs">
-                  <button
-                    onClick={() => {
-                      setRole('super_admin')
-                      setIsDropdownOpen(false)
-                    }}
-                    className={cn(
-                      'px-2 py-1.5 rounded-lg text-left font-medium transition-colors',
-                      profile?.role === 'super_admin' ? 'bg-purple-100 text-purple-900 font-semibold' : 'text-slate-600 hover:bg-slate-50'
-                    )}
-                  >
-                    Super Admin
-                  </button>
-                  <button
-                    onClick={() => {
-                      setRole('owner')
-                      setIsDropdownOpen(false)
-                    }}
-                    className={cn(
-                      'px-2 py-1.5 rounded-lg text-left font-medium transition-colors',
-                      profile?.role === 'owner' ? 'bg-amber-100 text-amber-900 font-semibold' : 'text-slate-600 hover:bg-slate-50'
-                    )}
-                  >
-                    Dono do Salão
-                  </button>
-                  <button
-                    onClick={() => {
-                      setRole('employee')
-                      setIsDropdownOpen(false)
-                    }}
-                    className={cn(
-                      'px-2 py-1.5 rounded-lg text-left font-medium transition-colors',
-                      profile?.role === 'employee' ? 'bg-blue-100 text-blue-900 font-semibold' : 'text-slate-600 hover:bg-slate-50'
-                    )}
-                  >
-                    Profissional
-                  </button>
-                  <a
-                    href="/agendar"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-2 py-1.5 rounded-lg text-left font-medium text-emerald-700 hover:bg-emerald-50 transition-colors flex items-center justify-between"
-                  >
-                    Cliente ↗
-                  </a>
+              <div className="p-2 border-b border-slate-100 text-xs text-slate-600">
+                <div className="flex items-center gap-2 px-2 py-1.5 text-slate-500">
+                  <Shield className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Sessão Autenticada</span>
                 </div>
               </div>
 
               <button
                 onClick={() => {
-                  signOut()
+                  logout()
                   setIsDropdownOpen(false)
                 }}
                 className="w-full flex items-center gap-2 px-3.5 py-2 text-sm text-red-600 hover:bg-red-50/80 transition-colors cursor-pointer mt-1"
               >
                 <LogOut className="h-4 w-4" />
-                Sair
+                Sair da Conta
               </button>
             </div>
           )}

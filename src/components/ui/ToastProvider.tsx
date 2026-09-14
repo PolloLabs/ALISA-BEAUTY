@@ -14,10 +14,10 @@ export function ToastProvider() {
       toastOptions={{
         duration: 4000,
         style: {
-          background: 'white',
-          color: '#1e293b',
+          background: 'var(--toast-bg, white)',
+          color: 'var(--toast-color, #1e293b)',
           borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid var(--toast-border, #e2e8f0)',
           boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
           padding: '12px 16px',
           minWidth: '300px',

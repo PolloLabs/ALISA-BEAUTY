@@ -368,7 +368,7 @@ export function FinanceiroPage() {
             <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
               <Users className="w-6 h-6" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-800">Nenhum repasse registrado no período</h3>
+            <h3 className="text-sm font-semibold text-slate-800">Sem dados ainda</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               Quando os profissionais concluírem agendamentos marcados como concluídos, as comissões aparecerão aqui automaticamente.
             </p>
@@ -550,7 +550,7 @@ export function FinanceiroPage() {
             </div>
             <h3 className="text-sm font-semibold text-slate-800">
               {completedAppointments.length === 0
-                ? 'Nenhum agendamento concluído encontrado neste período'
+                ? 'Sem dados ainda'
                 : 'Nenhum resultado para os filtros pesquisados'}
             </h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">

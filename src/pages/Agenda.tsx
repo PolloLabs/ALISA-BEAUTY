@@ -361,7 +361,7 @@ export function Agenda() {
         <Card>
           <EmptyState
             icon={CalendarIcon}
-            title="Nenhum agendamento encontrado"
+            title="Sem dados ainda"
             description={`Não há atendimentos para ${format(currentDate, "dd 'de' MMMM", { locale: ptBR })} com os filtros selecionados.`}
             actionLabel="Adicionar agendamento"
             onAction={() => setIsNewModalOpen(true)}

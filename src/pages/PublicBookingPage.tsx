@@ -30,7 +30,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/formatters'
 import { toast } from 'react-hot-toast'
-import { cn } from '@/lib/utils'
+import { cn, safeStorageGet } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useSalon } from '@/hooks/useSalon'
 import { useAppointments } from '@/hooks/useAppointments'
@@ -126,51 +126,33 @@ export function PublicBookingPage() {
 
   // Carrega dados de agendamentos locais para bloqueio de agenda
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('belezaflow_appointments')
-      if (saved) {
-        setExistingAppointments(JSON.parse(saved))
-      }
-    } catch (e) {
-      console.error(e)
+    const savedAppts = safeStorageGet<any[]>('belezaflow_appointments', [])
+    if (savedAppts && savedAppts.length > 0) {
+      setExistingAppointments(savedAppts)
     }
 
     // Carrega serviços salvos se houver
-    try {
-      const savedServices = localStorage.getItem('belezaflow_services')
-      if (savedServices) {
-        const parsed = JSON.parse(savedServices)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setServices(parsed.map(s => ({
-            id: s.id,
-            name: s.name,
-            description: s.description || '',
-            price: Number(s.price) || 0,
-            duration_minutes: Number(s.duration_minutes) || 30,
-            category: s.category || 'Geral'
-          })))
-        }
-      }
-    } catch (e) {
-      console.error(e)
+    const parsedServices = safeStorageGet<any[]>('belezaflow_services', [])
+    if (Array.isArray(parsedServices) && parsedServices.length > 0) {
+      setServices(parsedServices.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description || '',
+        price: Number(s.price) || 0,
+        duration_minutes: Number(s.duration_minutes) || 30,
+        category: s.category || 'Geral'
+      })))
     }
 
     // Carrega equipe salva se houver
-    try {
-      const savedStaff = localStorage.getItem('belezaflow_staff')
-      if (savedStaff) {
-        const parsed = JSON.parse(savedStaff)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setStaffList(parsed.map(st => ({
-            id: st.id,
-            full_name: st.full_name || st.name,
-            job_title: st.job_title || st.role || 'Profissional',
-            avatar_url: st.avatar_url || null
-          })))
-        }
-      }
-    } catch (e) {
-      console.error(e)
+    const parsedStaff = safeStorageGet<any[]>('belezaflow_staff', [])
+    if (Array.isArray(parsedStaff) && parsedStaff.length > 0) {
+      setStaffList(parsedStaff.map(st => ({
+        id: st.id,
+        full_name: st.full_name || st.name,
+        job_title: st.job_title || st.role || 'Profissional',
+        avatar_url: st.avatar_url || null
+      })))
     }
   }, [])
 

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { SalonProvider } from '@/contexts/SalonContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
@@ -16,12 +16,21 @@ import { StaffPage } from '@/pages/StaffPage'
 import { AgendaPage } from '@/pages/AgendaPage'
 import { Home } from '@/pages/Home'
 import { Agenda } from '@/pages/Agenda'
-import { Team } from '@/pages/Team'
-import { Booking } from '@/pages/Booking'
 import { Clients } from '@/pages/Clients'
-import { Financial } from '@/pages/Financial'
 import { FinanceiroPage } from '@/pages/FinanceiroPage'
 import { PublicBookingPage } from '@/pages/PublicBookingPage'
+import { SuperAdminPage } from '@/pages/SuperAdminPage'
+import { PlanGate } from '@/pages/PlanGate'
+
+// Componente wrapper para o Gate de Plano com redirecionamento pós ativação
+function PlanGateRoute() {
+  const navigate = useNavigate()
+  return (
+    <ProtectedRoute checkPlan={false}>
+      <PlanGate onPlanActivated={() => navigate('/')} />
+    </ProtectedRoute>
+  )
+}
 
 function App() {
   return (
@@ -30,7 +39,7 @@ function App() {
         <AuthProvider>
           <SalonProvider>
             <Routes>
-              {/* Rota Pública de Agendamento (Sem Login) */}
+              {/* Rota Pública de Agendamento (Sem alteração, sem login) */}
               <Route path="/agendar/:salonId" element={<PublicBookingPage />} />
               <Route path="/agendar" element={<PublicBookingPage />} />
 
@@ -39,6 +48,9 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
               </Route>
+
+              {/* Gate de Plano (Somente Dono sem plano ativo) */}
+              <Route path="/plan-gate" element={<PlanGateRoute />} />
 
               {/* Onboarding */}
               <Route 
@@ -50,8 +62,12 @@ function App() {
                 } 
               />
 
-              {/* Rotas Protegidas */}
-              <Route element={<ProtectedRoute requireSalon={true}><MainLayout /></ProtectedRoute>}>
+              {/* Rotas Protegidas no Layout Principal */}
+              <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                {/* Rota do Super Admin */}
+                <Route path="/admin" element={<SuperAdminPage />} />
+
+                {/* Rotas Principais */}
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/agenda" element={<AgendaPage />} />
                 <Route path="/agenda-visual" element={<Agenda />} />
@@ -61,7 +77,6 @@ function App() {
                 <Route path="/equipe" element={<StaffPage />} />
                 <Route path="/configuracoes" element={<SalonSettings />} />
                 <Route path="/configuracoes/salao" element={<SalonSettings />} />
-                <Route path="/agendamento" element={<Booking />} />
                 <Route path="/home" element={<Home />} />
               </Route>
 

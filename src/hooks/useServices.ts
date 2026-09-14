@@ -3,6 +3,7 @@ import { supabase, initialServices } from '@/lib/supabase'
 import { useSalon } from '@/hooks/useSalon'
 import { Service } from '@/types'
 import { toast } from 'react-hot-toast'
+import { safeStorageGet, safeStorageSet } from '@/lib/utils'
 
 interface UseServicesOptions {
   search?: string
@@ -28,24 +29,15 @@ interface UseServicesReturn {
 const LOCAL_STORAGE_KEY = 'belezaflow_services'
 
 function getLocalServices(salonId: string): Service[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
-    if (raw) {
-      const list = JSON.parse(raw) as Service[]
-      return list.filter((s) => !s.salon_id || s.salon_id === salonId)
-    }
-  } catch (e) {
-    console.error('Error reading local services:', e)
+  const list = safeStorageGet<Service[]>(LOCAL_STORAGE_KEY, [])
+  if (list && list.length > 0) {
+    return list.filter((s) => !s.salon_id || s.salon_id === salonId)
   }
   return initialServices.map((s) => ({ ...s, salon_id: salonId, is_active: s.is_active ?? true }))
 }
 
 function saveLocalServices(services: Service[]) {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(services))
-  } catch (e) {
-    console.error('Error saving local services:', e)
-  }
+  safeStorageSet(LOCAL_STORAGE_KEY, services)
 }
 
 export function useServices(options: UseServicesOptions = {}): UseServicesReturn {

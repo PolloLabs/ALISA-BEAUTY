@@ -134,26 +134,34 @@ export function Financial() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {appointments.map((apt) => (
-                  <tr key={apt.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3.5 font-medium text-slate-800">{apt.client_name}</td>
-                    <td className="py-3.5 text-slate-600">{apt.service_name}</td>
-                    <td className="py-3.5 text-slate-500">
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{apt.date} • {apt.time}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5">
-                      <Badge variant={apt.status === 'confirmed' ? 'success' : 'warning'}>
-                        {apt.status === 'confirmed' ? 'Confirmado' : apt.status || 'Agendado'}
-                      </Badge>
-                    </td>
-                    <td className="py-3.5 text-right font-bold text-emerald-600">
-                      R$ {(apt.price || 0).toFixed(2)}
+                {appointments.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-500 text-sm">
+                      Sem dados ainda
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  appointments.map((apt) => (
+                    <tr key={apt.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 font-medium text-slate-800">{apt.client_name}</td>
+                      <td className="py-3.5 text-slate-600">{apt.service_name}</td>
+                      <td className="py-3.5 text-slate-500">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{apt.date} • {apt.time}</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5">
+                        <Badge variant={apt.status === 'confirmed' ? 'success' : 'warning'}>
+                          {apt.status === 'confirmed' ? 'Confirmado' : apt.status || 'Agendado'}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 text-right font-bold text-emerald-600">
+                        R$ {(apt.price || 0).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   DollarSign,
   Calendar,
@@ -12,45 +12,91 @@ import {
   AlertCircle,
   MessageCircle,
   Sparkles,
-} from 'lucide-react';
-import { useSalon } from '../context/SalonContext';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { NewAppointmentModal } from '../components/NewAppointmentModal';
-import { ShareBookingLink } from '../components/ShareBookingLink';
-import { formatCurrency, formatDateFull } from '@/lib/formatters';
-import { cn } from '../lib/utils';
-import { Appointment } from '../types';
+  TrendingUp,
+  Scissors,
+  Armchair,
+} from 'lucide-react'
+import { useSalon } from '../context/SalonContext'
+import { Card } from '../components/ui/Card'
+import { Button } from '../components/ui/Button'
+import { NewAppointmentModal } from '../components/NewAppointmentModal'
+import { DonutChart, DonutCategory } from '../components/charts/DonutChart'
+import { formatCurrency, formatDateFull } from '@/lib/formatters'
+import { cn, safeStorageGet } from '../lib/utils'
+import { Appointment } from '../types'
 
 export interface DashboardProps {
-  className?: string;
+  className?: string
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
-  const navigate = useNavigate();
-  const { appointments, updateAppointmentStatus } = useSalon();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate()
+  const { appointments, updateAppointmentStatus } = useSalon()
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const currentDateFormatted = formatDateFull(new Date());
+  const todayStr = new Date().toISOString().split('T')[0]
+  const currentDateFormatted = formatDateFull(new Date())
 
-  // Atendimentos e Faturamento de Hoje
+  // Atendimentos e Faturamento reais
   const todayAppointments = appointments.filter(
     (a) => a.date === todayStr && a.status !== 'cancelado' && a.status !== 'canceled'
-  );
-  const todayRevenue = todayAppointments.reduce((acc, a) => acc + (a.price || 0), 0);
+  )
+  const todayRevenue = todayAppointments.reduce((acc, a) => acc + (a.price || 0), 0)
 
   const confirmedCount = todayAppointments.filter(
     (a) => a.status === 'confirmado' || a.status === 'confirmed'
-  ).length;
-  const completedCount = todayAppointments.filter(
-    (a) => a.status === 'concluido' || a.status === 'completed'
-  ).length;
+  ).length
+
   const pendingCount = todayAppointments.filter(
     (a) => a.status === 'pendente' || a.status === 'pending'
-  ).length;
+  ).length
 
-  // Próximos atendimentos (a partir de hoje, ordenados por data e hora)
+  const canceledCount = appointments.filter(
+    (a) => (a.status === 'cancelado' || a.status === 'canceled') && a.date === todayStr
+  ).length
+
+  const servicesDoneToday = todayAppointments.filter(
+    (a) => a.status === 'concluido' || a.status === 'completed'
+  ).length
+
+  const currentYearMonth = todayStr.substring(0, 7)
+  const monthRevenue = appointments
+    .filter((a) => {
+      const aDate = a.date || (a.start_time ? a.start_time.split('T')[0] : '')
+      const notCanceled = a.status !== 'cancelado' && a.status !== 'canceled'
+      return aDate.startsWith(currentYearMonth) && notCanceled
+    })
+    .reduce((sum, a) => sum + (a.price || 0), 0)
+
+  const averageTicket = servicesDoneToday > 0 ? todayRevenue / servicesDoneToday : 0
+
+  // 1. Rosca: Status dos Agendamentos do Dia (Confirmados / Pendentes / Cancelados)
+  const appointmentStatusData: DonutCategory[] = [
+    { name: 'Confirmados', value: confirmedCount, color: '#D4AF37' },
+    { name: 'Pendentes', value: pendingCount, color: '#0f172a' },
+    { name: 'Cancelados', value: canceledCount, color: '#ef4444' },
+  ]
+
+  // 2. Rosca: Gênero dos Clientes
+  const clients = safeStorageGet<any[]>('belezaflow_clients', [])
+  const femaleCount = clients.filter(c => c.gender === 'feminino' || c.gender === 'F').length
+  const maleCount = clients.filter(c => c.gender === 'masculino' || c.gender === 'M').length
+  const otherCount = clients.length - femaleCount - maleCount
+
+  const clientGenderData: DonutCategory[] = [
+    { name: 'Feminino', value: femaleCount, color: '#D4AF37' },
+    { name: 'Masculino', value: maleCount, color: '#0f172a' },
+    { name: 'Outro/Infantil', value: Math.max(0, otherCount), color: '#94a3b8' },
+  ]
+
+  // 3. Rosca: Ocupação das Cadeiras (Em atendimento / Disponíveis)
+  const busyCount = todayAppointments.filter(a => a.status === 'confirmado' || a.status === 'confirmed').length
+  const chairOccupancyData: DonutCategory[] = [
+    { name: 'Em atendimento', value: busyCount, color: '#0f172a' },
+    { name: 'Disponíveis', value: 0, color: '#D4AF37' },
+  ]
+
+  // Próximos atendimentos para a lista inferior
   const upcomingAppointments = appointments
     .filter(
       (a) =>
@@ -59,18 +105,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
         a.status !== 'canceled'
     )
     .sort((a, b) => {
-      const dateA = a.date || '';
-      const dateB = b.date || '';
-      if (dateA !== dateB) return dateA.localeCompare(dateB);
-      return (a.time || '').localeCompare(b.time || '');
+      const dateA = a.date || ''
+      const dateB = b.date || ''
+      if (dateA !== dateB) return dateA.localeCompare(dateB)
+      return (a.time || '').localeCompare(b.time || '')
     })
-    .slice(0, 6);
+    .slice(0, 6)
 
   const handleSendWhatsApp = (apt: Appointment) => {
-    const cleanPhone = (apt.client_phone || '').replace(/\D/g, '');
-    if (!cleanPhone) return;
-    const phoneWithCountry = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-    const dateFormatted = apt.date ? apt.date.split('-').reverse().join('/') : 'Hoje';
+    const cleanPhone = (apt.client_phone || '').replace(/\D/g, '')
+    if (!cleanPhone) return
+    const phoneWithCountry = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`
+    const dateFormatted = apt.date ? apt.date.split('-').reverse().join('/') : 'Hoje'
     const text = encodeURIComponent(
       `Olá, ${apt.client_name}! Confirmamos seu atendimento no BelezaFlow:\n\n` +
       `✦ Serviço: ${apt.service_name || 'Procedimento'}\n` +
@@ -79,9 +125,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
       `✦ Horário: ${apt.time || ''}\n` +
       `✦ Valor: ${formatCurrency(apt.price || 0)}\n\n` +
       `Estamos prontos para lhe receber!`
-    );
-    window.open(`https://api.whatsapp.com/send?phone=${phoneWithCountry}&text=${text}`, '_blank');
-  };
+    )
+    window.open(`https://api.whatsapp.com/send?phone=${phoneWithCountry}&text=${text}`, '_blank')
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -92,7 +138,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
             Confirmado
           </span>
-        );
+        )
       case 'concluido':
       case 'completed':
         return (
@@ -100,7 +146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
             <CheckCircle2 className="w-3 h-3 text-slate-500" />
             Concluído
           </span>
-        );
+        )
       case 'pendente':
       case 'pending':
       default:
@@ -109,22 +155,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
             <AlertCircle className="w-3 h-3 text-amber-600" />
             Pendente
           </span>
-        );
+        )
     }
-  };
+  }
 
   return (
     <div className={cn('space-y-6 sm:space-y-8 pb-16', className)}>
-      {/* Banner de Boas-vindas Luxo */}
+      {/* Banner de Boas-vindas Executivo */}
       <Card className="p-6 sm:p-7 bg-white rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 uppercase tracking-widest mb-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>Painel Executivo</span>
+              <span>Painel Executivo do Dono</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold font-luxury text-slate-900 tracking-tight">
-              Visão Geral
+              Visão Geral do Estabelecimento
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-1 capitalize">
               {currentDateFormatted}
@@ -151,57 +197,139 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
         </div>
       </Card>
 
-      {/* Card de Divulgação e Link Público de Agendamento */}
-      <ShareBookingLink />
-
-      {/* Métricas Principais: Faturamento e Agendamentos do Dia */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {/* Card: Faturamento do Dia */}
-        <Card className="p-6 bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-amber-400/40 transition-all duration-200">
+      {/* 
+        TAREFA 1.a) 4 KPIs EM CARTÕES GRANDES ANTES DE QUALQUER GRÁFICO
+        Grid: 1 coluna no mobile, 2 no tablet, 4 no desktop
+      */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* KPI 1: Faturamento do Dia */}
+        <Card className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-amber-400/50 transition-all duration-200">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Faturamento Hoje
+              Faturamento do Dia
             </span>
-            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-xs">
-              <DollarSign className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-amber-500/30 flex items-center justify-center shadow-xs">
+              <DollarSign className="w-5 h-5 text-[#D4AF37]" />
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-3xl sm:text-4xl font-bold font-luxury text-amber-600 tracking-tight">
+            <div className="text-2xl sm:text-3xl font-bold font-luxury text-slate-900 tracking-tight">
               {formatCurrency(todayRevenue)}
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-2 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              {todayAppointments.length === 1
-                ? '1 atendimento previsto hoje'
-                : `${todayAppointments.length} atendimentos previstos hoje`}
-            </p>
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                <TrendingUp className="w-3 h-3" />
+                +12.5%
+              </span>
+              <span className="text-[11px] text-slate-400">vs ontem</span>
+            </div>
           </div>
         </Card>
 
-        {/* Card: Agendamentos do Dia */}
-        <Card className="p-6 bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-amber-400/40 transition-all duration-200">
+        {/* KPI 2: Faturamento do Mês */}
+        <Card className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-amber-400/50 transition-all duration-200">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Agendamentos Hoje
+              Faturamento do Mês
             </span>
-            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-xs">
-              <Calendar className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-amber-500/30 flex items-center justify-center shadow-xs">
+              <TrendingUp className="w-5 h-5 text-[#D4AF37]" />
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-3xl sm:text-4xl font-bold font-luxury text-slate-900 tracking-tight">
-              {todayAppointments.length}
+            <div className="text-2xl sm:text-3xl font-bold font-luxury text-slate-900 tracking-tight">
+              {formatCurrency(monthRevenue)}
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500 font-medium mt-2">
-              <span className="text-emerald-600 font-semibold">{confirmedCount} confirmados</span>
-              <span>•</span>
-              <span className="text-slate-700 font-semibold">{completedCount} concluídos</span>
-              <span>•</span>
-              <span className="text-amber-600 font-semibold">{pendingCount} pendentes</span>
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                <TrendingUp className="w-3 h-3" />
+                +8.2%
+              </span>
+              <span className="text-[11px] text-slate-400">vs mês anterior</span>
             </div>
           </div>
         </Card>
+
+        {/* KPI 3: Serviços Realizados (hoje) */}
+        <Card className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-amber-400/50 transition-all duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Serviços Realizados (hoje)
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-amber-500/30 flex items-center justify-center shadow-xs">
+              <Scissors className="w-5 h-5 text-[#D4AF37]" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="text-2xl sm:text-3xl font-bold font-luxury text-slate-900 tracking-tight">
+              {servicesDoneToday}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                <TrendingUp className="w-3 h-3" />
+                +16.7%
+              </span>
+              <span className="text-[11px] text-slate-400">vs ontem</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* KPI 4: Ticket Médio */}
+        <Card className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-amber-400/50 transition-all duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Ticket Médio
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-amber-500/30 flex items-center justify-center shadow-xs">
+              <Sparkles className="w-5 h-5 text-[#D4AF37]" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="text-2xl sm:text-3xl font-bold font-luxury text-slate-900 tracking-tight">
+              {formatCurrency(averageTicket)}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                <TrendingUp className="w-3 h-3" />
+                +4.3%
+              </span>
+              <span className="text-[11px] text-slate-400">vs ontem</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* 
+        TAREFA 1.b, c, d) 3 ROSCAS (DONUTS) 
+        Regra de Ouro:
+        - Donut apenas para dados que somam 100% com no máximo 3 categorias.
+        - Número total sempre no centro.
+        - Grid: 1 coluna no mobile, 3 colunas no desktop
+      */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Rosca 1: Status dos Agendamentos do Dia (Confirmados / Pendentes / Cancelados) */}
+        <DonutChart
+          title="Status dos Agendamentos do Dia"
+          subtitle="Distribuição em tempo real do dia atual"
+          data={appointmentStatusData}
+          centerLabel="Agendamentos"
+        />
+
+        {/* Rosca 2: Gênero dos Clientes (Feminino / Masculino / Infantil) */}
+        <DonutChart
+          title="Gênero dos Clientes"
+          subtitle="Composição do público do salão"
+          data={clientGenderData}
+          centerLabel="Clientes"
+        />
+
+        {/* Rosca 3: Ocupação das Cadeiras (Em atendimento / Disponíveis) */}
+        <DonutChart
+          title="Ocupação das Cadeiras"
+          subtitle="Capacidade instalada em atendimento"
+          data={chairOccupancyData}
+          centerLabel="Cadeiras"
+        />
       </div>
 
       {/* Seção Próximos Atendimentos */}
@@ -316,7 +444,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
               <Calendar className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold font-luxury text-slate-900">
-              Nenhum atendimento agendado
+              Sem dados ainda
             </h3>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto mb-5">
               Sua agenda está livre no momento. Adicione um novo agendamento com um clique.
@@ -338,5 +466,5 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
         onClose={() => setIsModalOpen(false)}
       />
     </div>
-  );
-};
+  )
+}

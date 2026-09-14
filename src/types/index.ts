@@ -1,5 +1,5 @@
 export type UserRole = 'super_admin' | 'owner' | 'employee' | 'client';
-export type BusinessType = 'beauty_salon' | 'barbershop' | 'unisex' | 'nail_studio';
+export type BusinessType = 'beauty_salon' | 'barbershop' | 'unisex' | 'nail_studio' | (string & {});
 
 export interface Profile {
   id: string;

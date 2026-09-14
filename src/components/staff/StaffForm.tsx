@@ -1,8 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { User, Mail, Percent, Briefcase } from 'lucide-react'
+import { User, Mail, Percent, Briefcase, Lock, Eye, EyeOff } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { InputMaskField } from '@/components/ui/InputMask'
 
@@ -32,6 +32,10 @@ export const staffFormSchema = z.object({
     .max(255, 'E-mail muito longo')
     .optional()
     .or(z.literal('')),
+  password: z.string()
+    .min(6, 'Senha deve ter no mínimo 6 caracteres')
+    .optional()
+    .or(z.literal('')),
   job_title: z.string()
     .min(1, 'Selecione uma função')
     .max(50, 'Função muito longa'),
@@ -51,6 +55,9 @@ interface StaffFormProps {
 }
 
 export function StaffForm({ defaultValues, onSubmit, onCancel, isLoading }: StaffFormProps) {
+  const [showPassword, setShowPassword] = useState(false)
+  const isEditing = !!defaultValues?.full_name
+
   const {
     register,
     handleSubmit,
@@ -63,6 +70,7 @@ export function StaffForm({ defaultValues, onSubmit, onCancel, isLoading }: Staf
       full_name: '',
       phone: '',
       email: '',
+      password: '',
       job_title: 'Cabeleireiro(a)',
       commission_rate: 50,
       ...defaultValues,
@@ -75,7 +83,7 @@ export function StaffForm({ defaultValues, onSubmit, onCancel, isLoading }: Staf
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <Input
-        label="Nome completo"
+        label="Nome completo *"
         placeholder="Ex: Ana Clara Cavalcante"
         leftIcon={<User className="h-4 w-4" />}
         error={errors.full_name?.message}
@@ -84,7 +92,7 @@ export function StaffForm({ defaultValues, onSubmit, onCancel, isLoading }: Staf
 
       <InputMaskField
         mask="(99) 99999-9999"
-        label="Telefone / WhatsApp"
+        label="Telefone / WhatsApp *"
         placeholder="(11) 98765-4321"
         value={phoneValue || ''}
         onChange={(e) => setValue('phone', e.target.value, { shouldValidate: true })}
@@ -94,13 +102,33 @@ export function StaffForm({ defaultValues, onSubmit, onCancel, isLoading }: Staf
       )}
 
       <Input
-        label="E-mail (Opcional)"
+        label="E-mail de Acesso (Login) *"
         type="email"
         placeholder="ana@belezaflow.com"
         leftIcon={<Mail className="h-4 w-4" />}
         error={errors.email?.message}
         {...register('email')}
       />
+
+      {/* Campo de Senha do Profissional */}
+      <div className="relative">
+        <Input
+          label={isEditing ? 'Nova Senha (deixe em branco para manter)' : 'Senha de Acesso do Profissional *'}
+          type={showPassword ? 'text' : 'password'}
+          placeholder="Mínimo 6 caracteres (ex: prof123)"
+          leftIcon={<Lock className="h-4 w-4" />}
+          error={errors.password?.message}
+          {...register('password')}
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-9 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+          title={showPassword ? 'Ocultar senha' : 'Ver senha'}
+        >
+          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
 
       {/* Campo de Função */}
       <div>

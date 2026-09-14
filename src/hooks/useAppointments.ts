@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, initialAppointments } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { useSalon } from '@/hooks/useSalon'
 import { Appointment } from '@/types'
 import { toast } from 'react-hot-toast'
 import { format } from 'date-fns'
+import { safeStorageGet, safeStorageSet } from '@/lib/utils'
 
 export interface AppointmentWithDetails extends Appointment {
   service_name?: string
@@ -45,32 +46,13 @@ export interface UseAppointmentsReturn {
 const LOCAL_STORAGE_KEY = 'belezaflow_appointments'
 
 function getLocalAppointments(salonId: string): AppointmentWithDetails[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
-    if (raw) {
-      const list = JSON.parse(raw) as AppointmentWithDetails[]
-      return list.filter((a) => !a.salon_id || a.salon_id === salonId)
-    }
-  } catch (e) {
-    console.error('Error reading local appointments:', e)
-  }
-  return initialAppointments.map((a) => ({
-    ...a,
-    salon_id: salonId,
-    start_time: a.date && a.time ? `${a.date}T${a.time}:00` : new Date().toISOString(),
-    end_time: a.date && a.time ? `${a.date}T${a.time}:00` : new Date().toISOString(),
-    staff_name: a.professional_name || 'Profissional',
-    service_price: a.price,
-    service_duration: a.duration_minutes,
-  }))
+  const list = safeStorageGet<AppointmentWithDetails[]>(LOCAL_STORAGE_KEY, [])
+  const mockIds = ['apt-1', 'apt-2', 'apt-3', 'apt-4', 'apt-5', 'apt-6', '1', '2', '3', '4']
+  return list.filter((a) => a && !mockIds.includes(a.id) && (!a.salon_id || a.salon_id === salonId))
 }
 
 function saveLocalAppointments(list: AppointmentWithDetails[]) {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list))
-  } catch (e) {
-    console.error('Error saving local appointments:', e)
-  }
+  safeStorageSet(LOCAL_STORAGE_KEY, list)
 }
 
 export function useAppointments(options: UseAppointmentsOptions = {}): UseAppointmentsReturn {
