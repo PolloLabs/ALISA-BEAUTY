@@ -164,6 +164,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
       {/* Banner de Boas-vindas Executivo */}
       <Card className="p-6 sm:p-7 bg-white rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
             <h1 className="text-2xl sm:text-3xl font-bold font-luxury text-slate-900 tracking-tight">
               Visão Geral do Estabelecimento
             </h1>
