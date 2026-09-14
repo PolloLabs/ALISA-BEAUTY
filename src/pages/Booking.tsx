@@ -104,7 +104,7 @@ export const Booking: React.FC<BookingProps> = ({ className }) => {
     const cleanPhone = clientPhone.replace(/\D/g, '');
     const phoneWithCountry = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
     const text = encodeURIComponent(
-      `Olá! Meu agendamento no BelezaFlow foi solicitado com sucesso:\n\n` +
+      `Olá! Meu agendamento no ${salon?.name || 'salão'} foi solicitado com sucesso:\n\n` +
       ` Procedimento: ${selectedService.name}\n` +
       ` Especialista: ${selectedProfessional.name}\n` +
       ` Data: ${selectedDate.split('-').reverse().join('/')}\n` +
