@@ -81,7 +81,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div className="min-w-0 flex-1">
               <span className="font-luxury font-bold text-slate-900 block truncate text-base tracking-tight leading-none">
-                {role === 'super_admin' ? 'BelezaFlow SaaS' : salon?.name || 'Studio BelezaFlow'}
+                {role === 'super_admin' ? 'ALISA BEAUTY' : salon?.name || 'Studio BelezaFlow'}
               </span>
               <span className="text-[10px] uppercase tracking-widest text-amber-600 font-semibold mt-1 block">
                 {role === 'super_admin' ? 'Super Admin' : role === 'employee' ? 'Espaço Profissional' : 'Gestão do Salão'}
@@ -139,40 +139,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </a>
         </div>
 
-        {/* Footer info & Role Badge */}
-        <div className="p-3.5 border-t border-slate-200/80 bg-slate-50/70 space-y-2">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span className="font-medium text-slate-700">{config.label}</span>
-            <span className="text-amber-600 font-semibold">• Ativo</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-slate-200/80 text-[10px] font-semibold text-slate-700">
-            {role === 'super_admin' && (
-              <>
-                <ShieldCheck className="w-3 h-3 text-purple-600" />
-                <span className="text-purple-900">Super Admin</span>
-              </>
-            )}
-            {role === 'owner' && (
-              <>
-                <Briefcase className="w-3 h-3 text-amber-600" />
-                <span className="text-amber-900">Dono do Salão</span>
-              </>
-            )}
-            {role === 'employee' && (
-              <>
-                <Users className="w-3 h-3 text-blue-600" />
-                <span className="text-blue-900">Profissional (Acesso Restrito)</span>
-              </>
-            )}
-            {role === 'client' && (
-              <>
-                <Sparkles className="w-3 h-3 text-emerald-600" />
-                <span className="text-emerald-900">Cliente</span>
-              </>
-            )}
-          </div>
-        </div>
+        {/* Footer info & Role Badge - REMOVIDO conforme solicitação */}
       </aside>
     </>
   )
