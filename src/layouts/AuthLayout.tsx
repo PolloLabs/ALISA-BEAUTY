@@ -17,7 +17,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ className }) => {
             <div className="w-12 h-12 rounded-xl bg-rose-500 text-white flex items-center justify-center shadow-sm">
               <Scissors className="w-6 h-6" />
             </div>
-            <span className="font-bold text-2xl text-slate-800 tracking-tight">BelezaFlow</span>
+            <span className="font-bold text-2xl text-slate-800 tracking-tight">ALISA BEAUTY</span>
           </Link>
           <p className="mt-2 text-sm text-slate-600">
             A plataforma completa de agendamento para salões de beleza
@@ -29,7 +29,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ className }) => {
 
         {/* Footer */}
         <p className="mt-8 text-center text-xs text-slate-400">
-          BelezaFlow &bull; Sistema SaaS com suporte a Supabase &bull; 100% Responsivo
+          ALISA BEAUTY &bull; Sistema SaaS com suporte a Supabase &bull; 100% Responsivo
         </p>
       </div>
     </div>
