@@ -77,7 +77,7 @@ export const PlanGate: React.FC<PlanGateProps> = ({ onPlanActivated }) => {
       // Simulação rápida de pagamento do plano
       await new Promise((resolve) => setTimeout(resolve, 800))
       activatePlan(selectedPlan)
-      toast.success('Assinatura ativada com sucesso! Bem-vindo(a) ao BelezaFlow Pro.')
+      toast.success('Assinatura ativada com sucesso! Bem-vindo(a) ao ALISA BEAUTY Pro.')
       onPlanActivated()
     } catch {
       toast.error('Erro ao processar assinatura')
