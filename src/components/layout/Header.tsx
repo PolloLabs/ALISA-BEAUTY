@@ -120,7 +120,7 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
                   {getRoleLabel(user?.role)}
                 </span>
               </div
-
+             </div>
               <button
                 onClick={() => {
                   logout()
