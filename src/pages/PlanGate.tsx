@@ -91,10 +91,6 @@ export const PlanGate: React.FC<PlanGateProps> = ({ onPlanActivated }) => {
       <div className="w-full max-w-5xl mx-auto space-y-8 py-6">
         {/* Header */}
         <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            Ativação de Assinatura
-          </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-luxury">
             Escolha o Plano do seu Salão
           </h1>
