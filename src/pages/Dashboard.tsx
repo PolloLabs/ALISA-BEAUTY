@@ -70,11 +70,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
 
   const averageTicket = servicesDoneToday > 0 ? todayRevenue / servicesDoneToday : 0
 
-  // 1. Rosca: Status dos Agendamentos do Dia (Confirmados / Pendentes / Cancelados)
-  const appointmentStatusData: DonutCategory[] = [
-    { name: 'Confirmados', value: confirmedCount, color: '#D4AF37' },
-    { name: 'Pendentes', value: pendingCount, color: '#0f172a' },
-    { name: 'Cancelados', value: canceledCount, color: '#ef4444' },
+ // 1. Rosca: Status dos Agendamentos do Dia — DADOS DEMONSTRATIVOS
+const appointmentStatusData: DonutCategory[] = [
+  { name: 'Confirmados', value: 7, color: '#D4AF37' },
+  { name: 'Pendentes', value: 4, color: '#0f172a' },
+  { name: 'Cancelados', value: 2, color: '#ef4444' },
   ]
 
   // 2. Rosca: Gênero dos Clientes
