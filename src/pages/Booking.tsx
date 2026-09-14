@@ -24,7 +24,7 @@ export interface BookingProps {
 }
 
 export const Booking: React.FC<BookingProps> = ({ className }) => {
-  const { services, professionals, addAppointment } = useSalon();
+  const { salon, services, professionals, addAppointment } = useSalon();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
