@@ -218,7 +218,7 @@ export const PlanGate: React.FC<PlanGateProps> = ({ onPlanActivated }) => {
 
         <p className="text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
           <Lock className="w-3.5 h-3.5 text-slate-500" />
-           ALISA BEAUTY &bull; Assinatura mensal sem fidelidade
+           Assinatura mensal sem fidelidade
         </p>
       </div>
     </div>
