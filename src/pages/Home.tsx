@@ -31,7 +31,7 @@ export function Home() {
         
         {/* PageHeader Component */}
         <PageHeader
-          title="BelezaFlow"
+          title="ALISA BEAUTY"
           description="Design System & Componentes das Etapas 1 e 2"
           action={{
             label: 'Novo Atendimento',
