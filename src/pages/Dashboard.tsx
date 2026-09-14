@@ -186,13 +186,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
               <Calendar className="w-4 h-4 text-slate-500" />
               <span>Ver Agenda</span>
             </Button>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-medium text-sm border border-slate-800 shadow-sm transition-all duration-150 cursor-pointer"
-            >
-              <Plus className="w-4 h-4 text-amber-400" />
-              <span>Agendar</span>
-            </button>
           </div>
         </div>
       </Card>
