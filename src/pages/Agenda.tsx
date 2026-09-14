@@ -193,11 +193,6 @@ export function Agenda() {
       <PageHeader
         title="Agenda de Atendimentos"
         description="Gerencie os agendamentos e horários em tempo real com controle anti-conflito"
-        action={{
-          label: 'Novo agendamento',
-          onClick: () => setIsNewModalOpen(true),
-          icon: <Plus className="h-4 w-4" />,
-        }}
       />
 
       {/* Barra Superior de Navegação de Data */}
