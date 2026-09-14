@@ -119,14 +119,7 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
                 <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900">
                   {getRoleLabel(user?.role)}
                 </span>
-              </div>
-
-              <div className="p-2 border-b border-slate-100 text-xs text-slate-600">
-                <div className="flex items-center gap-2 px-2 py-1.5 text-slate-500">
-                  <Shield className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Sessão Autenticada</span>
-                </div>
-              </div>
+              </div
 
               <button
                 onClick={() => {
