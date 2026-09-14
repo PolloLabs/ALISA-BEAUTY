@@ -164,11 +164,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
       {/* Banner de Boas-vindas Executivo */}
       <Card className="p-6 sm:p-7 bg-white rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 uppercase tracking-widest mb-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>Painel Executivo do Dono</span>
-            </div>
             <h1 className="text-2xl sm:text-3xl font-bold font-luxury text-slate-900 tracking-tight">
               Visão Geral do Estabelecimento
             </h1>
