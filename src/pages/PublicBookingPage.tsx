@@ -33,6 +33,7 @@ import { toast } from 'react-hot-toast'
 import { cn, safeStorageGet } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useSalon } from '@/hooks/useSalon'
+import { usePlan } from '@/hooks/usePlan'
 import { useAppointments } from '@/hooks/useAppointments'
 import { usePayments } from '@/hooks/usePayments'
 import { PaymentMethod } from '@/types'
@@ -79,7 +80,10 @@ export function PublicBookingPage() {
   const { salonId } = useParams<{ salonId?: string }>()
   const navigate = useNavigate()
   const { salon: activeSalon } = useSalon()
+  const { can: salonCan, planName: salonPlanName } = usePlan()
   const { recordPayment } = usePayments()
+
+  const hasFullCheckout = salonCan('checkout_completo')
 
   // 1. DADOS DO SALÃO
   const currentSalonId = salonId || activeSalon?.id || 'default-salon'
@@ -806,34 +810,55 @@ export function PublicBookingPage() {
                   </label>
 
                   {/* OPÇÃO 2: Pagar 30% de sinal */}
-                  <label
-                    className={cn(
-                      'flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all',
-                      paymentOption === 'deposit'
-                        ? 'border-amber-600 bg-amber-50/50 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentOption"
-                      value="deposit"
-                      checked={paymentOption === 'deposit'}
-                      onChange={() => setPaymentOption('deposit')}
-                      className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-slate-300"
-                    />
-                    <div className="flex-1">
-                      <span className="font-bold text-sm text-slate-900 block">
-                        Pagar {depositPercentage}% de sinal
-                      </span>
-                      <p className="text-xs text-slate-600 mt-0.5">
-                        ({formatCurrency(depositAmount)} agora)
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        Restante de {formatCurrency(remainingDepositAmount)} quitado no atendimento.
-                      </p>
+                  {hasFullCheckout ? (
+                    <label
+                      className={cn(
+                        'flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all',
+                        paymentOption === 'deposit'
+                          ? 'border-amber-600 bg-amber-50/50 shadow-xs'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentOption"
+                        value="deposit"
+                        checked={paymentOption === 'deposit'}
+                        onChange={() => setPaymentOption('deposit')}
+                        className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-slate-300"
+                      />
+                      <div className="flex-1">
+                        <span className="font-bold text-sm text-slate-900 block">
+                          Pagar {depositPercentage}% de sinal
+                        </span>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          ({formatCurrency(depositAmount)} agora)
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Restante de {formatCurrency(remainingDepositAmount)} quitado no atendimento.
+                        </p>
+                      </div>
+                    </label>
+                  ) : (
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50/80">
+                      <div className="mt-1 w-4 h-4 rounded-full border border-slate-300 bg-slate-200 flex items-center justify-center flex-shrink-0">
+                        <Lock className="w-2.5 h-2.5 text-slate-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm text-slate-600 block">
+                            Pagar {depositPercentage}% de sinal
+                          </span>
+                          <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                            Disponível no Pro / Premium
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Reserva com pagamento de sinal disponível para estabelecimentos nos planos Pro e Premium.
+                        </p>
+                      </div>
                     </div>
-                  </label>
+                  )}
 
                   {/* OPÇÃO 3: Pagar no local */}
                   {!requireDeposit && (
@@ -920,29 +945,53 @@ export function PublicBookingPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setGatewayMethod('card')}
+                  onClick={() => {
+                    if (!hasFullCheckout) {
+                      toast.error('Pagamento com Cartão disponível nos planos Pro e Premium')
+                      return
+                    }
+                    setGatewayMethod('card')
+                  }}
                   className={cn(
-                    'py-3 px-2 rounded-xl border text-center font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer',
+                    'py-3 px-2 rounded-xl border text-center font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer relative',
                     gatewayMethod === 'card'
                       ? 'border-blue-600 bg-blue-50/80 text-blue-900 shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+                    !hasFullCheckout && 'opacity-60 hover:border-slate-200 cursor-not-allowed bg-slate-50'
                   )}
                 >
                   <CreditCard className="w-5 h-5 text-blue-600" />
                   Cartão de Crédito
+                  {!hasFullCheckout && (
+                    <span className="text-[9px] font-semibold text-amber-700 bg-amber-100/90 px-1.5 py-0.2 rounded-full border border-amber-200 flex items-center gap-0.5">
+                      <Lock className="w-2 h-2" /> Pro
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setGatewayMethod('boleto')}
+                  onClick={() => {
+                    if (!hasFullCheckout) {
+                      toast.error('Pagamento com Boleto disponível nos planos Pro e Premium')
+                      return
+                    }
+                    setGatewayMethod('boleto')
+                  }}
                   className={cn(
-                    'py-3 px-2 rounded-xl border text-center font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer',
+                    'py-3 px-2 rounded-xl border text-center font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer relative',
                     gatewayMethod === 'boleto'
                       ? 'border-slate-900 bg-slate-100 text-slate-900 shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+                    !hasFullCheckout && 'opacity-60 hover:border-slate-200 cursor-not-allowed bg-slate-50'
                   )}
                 >
                   <FileText className="w-5 h-5 text-slate-700" />
                   Boleto Bancário
+                  {!hasFullCheckout && (
+                    <span className="text-[9px] font-semibold text-amber-700 bg-amber-100/90 px-1.5 py-0.2 rounded-full border border-amber-200 flex items-center gap-0.5">
+                      <Lock className="w-2 h-2" /> Pro
+                    </span>
+                  )}
                 </button>
               </div>
 

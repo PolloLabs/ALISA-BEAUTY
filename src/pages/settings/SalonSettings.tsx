@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Building2, 
   Palette, 
@@ -27,10 +28,12 @@ import {
   Percent,
   CheckCircle2,
   Power,
-  User
+  User,
+  Lock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useSalon } from '@/hooks/useSalon';
+import { usePlan } from '@/hooks/usePlan';
 import { ShareBookingLink } from '@/components/ShareBookingLink';
 import { BusinessType } from '@/types';
 import { cn, safeStorageGet, resizeImageToMax256 } from '@/lib/utils';
@@ -89,7 +92,10 @@ const LUXURY_PALETTE: LuxuryColorPreset[] = [
 ];
 
 export function SalonSettings() {
+  const navigate = useNavigate();
   const { salon, loading, updateSalon, showToast } = useSalon();
+  const { can, planName } = usePlan();
+  const canPersonalize = can('personalizacao');
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('dados');
   const [isSaving, setIsSaving] = useState(false);
@@ -437,6 +443,11 @@ export function SalonSettings() {
           >
             <Palette className="w-4 h-4" />
             <span>Personalização</span>
+            {!canPersonalize && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-200 ml-1">
+                <Lock className="w-2 h-2" /> VIP
+              </span>
+            )}
           </button>
 
           <button
@@ -598,6 +609,34 @@ export function SalonSettings() {
 
           {/* ABA 2: PERSONALIZAÇÃO */}
           {activeTab === 'personalizacao' && (
+            !canPersonalize ? (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-8 text-center space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center mx-auto shadow-xs">
+                  <Lock className="w-8 h-8 text-purple-600" />
+                </div>
+                <div className="max-w-md mx-auto space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 text-xs font-semibold">
+                    <Crown className="w-3.5 h-3.5 text-purple-600" />
+                    Exclusivo do Plano Premium
+                  </div>
+                  <h2 className="text-xl font-bold font-luxury text-slate-900">
+                    Personalização Visual Completa
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    Seu plano atual <strong className="text-slate-900">{planName}</strong> não possui acesso à personalização visual avançada. No plano <strong className="text-slate-900">Premium</strong>, você pode customizar logotipo oficial, foto de perfil, paleta de cores de luxo e temas escuro e claro personalizados.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    onClick={() => navigate('/plan-gate')}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 text-amber-400 text-xs font-bold hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
+                  >
+                    <Crown className="w-4 h-4 text-amber-400" />
+                    <span>Fazer Upgrade para o Plano Premium</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div className="space-y-6 animate-in fade-in duration-200">
               {/* Upload de Logo */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
@@ -906,6 +945,7 @@ export function SalonSettings() {
                 </div>
               </div>
             </div>
+            )
           )}
 
           {/* ABA 3: CONFIGURAÇÕES GERAIS */}

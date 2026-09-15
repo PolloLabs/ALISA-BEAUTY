@@ -45,6 +45,7 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
     if (path === '/') return 'Dashboard'
     if (path === '/agenda') return user?.role === 'employee' ? 'Minha Agenda' : 'Agenda'
     if (path === '/agenda-visual') return 'Agenda Visual'
+    if (path === '/campanhas') return 'Campanhas'
     if (path.startsWith('/servicos')) return 'Serviços'
     if (path.startsWith('/financeiro')) return 'Financeiro'
     if (path.startsWith('/equipe')) return 'Equipe'

@@ -5,6 +5,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useSalon } from '../context/SalonContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Header } from '../components/layout/Header';
 import { NewAppointmentModal } from '../components/NewAppointmentModal';
@@ -17,9 +18,12 @@ export interface MainLayoutProps {
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ className }) => {
   const { isSupabaseActive, toastMessage } = useSalon();
+  const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+
+  const isSuperAdmin = user?.role === 'super_admin';
 
   return (
     <div className={cn('min-h-screen bg-slate-50 text-slate-800 antialiased', className)}>
@@ -32,13 +36,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ className }) => {
         <Header
           onMenuClick={() => setIsSidebarOpen(true)}
           rightActions={
-            <button
-              onClick={() => setIsNewAppointmentOpen(true)}
-              className="flex items-center gap-2 h-9 px-3.5 sm:px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-medium text-xs sm:text-sm border border-slate-800 shadow-sm transition-all duration-200 cursor-pointer"
-            >
-              <Plus className="w-4 h-4 text-amber-400" />
-              <span>Novo Agendamento</span>
-            </button>
+            !isSuperAdmin ? (
+              <button
+                onClick={() => setIsNewAppointmentOpen(true)}
+                className="flex items-center gap-2 h-9 px-3.5 sm:px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-medium text-xs sm:text-sm border border-slate-800 shadow-sm transition-all duration-200 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-amber-400" />
+                <span>Novo Agendamento</span>
+              </button>
+            ) : null
           }
         />
 

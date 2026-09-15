@@ -13,11 +13,14 @@ import {
   ExternalLink, 
   ShieldCheck, 
   Building2, 
-  CreditCard 
+  CreditCard,
+  MessageSquare,
+  Lock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSalon } from '@/hooks/useSalon'
 import { useAuth } from '@/hooks/useAuth'
+import { usePlan } from '@/hooks/usePlan'
 import { getBusinessConfig } from '@/lib/businessConfig'
 
 export interface SidebarProps {
@@ -29,6 +32,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation()
   const { salon } = useSalon()
   const { user } = useAuth()
+  const { can } = usePlan()
 
   const [systemLogo, setSystemLogo] = useState<string | null>(() => {
     return typeof window !== 'undefined' ? localStorage.getItem('system_logo') : null
@@ -76,6 +80,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { to: '/', label: 'Dashboard', icon: LayoutDashboard },
         { to: '/agenda', label: 'Agenda', icon: Calendar },
         { to: '/agenda-visual', label: 'Agenda Visual', icon: CalendarDays },
+        { to: '/campanhas', label: 'Campanhas', icon: MessageSquare },
         { to: '/servicos', label: 'Serviços', icon: Scissors },
         { to: '/financeiro', label: 'Financeiro', icon: DollarSign },
         { to: '/equipe', label: 'Equipe', icon: UserCheck },
@@ -138,20 +143,40 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             const isActive = location.pathname === item.to || 
               (item.to === '/configuracoes/salao' && location.pathname.startsWith('/configuracoes'))
             
+            // Verificação de bloqueio para o plano do salão
+            const isVisualLocked = item.to === '/agenda-visual' && role === 'owner' && !can('agenda_visual')
+            const isCampanhasLocked = item.to === '/campanhas' && role === 'owner' && !can('campanhas_em_lote')
+
             return (
               <NavLink
                 key={item.to}
                 to={item.to}
                 onClick={handleNavClick}
                 className={cn(
-                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 min-h-[44px]',
+                  'flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 min-h-[44px]',
                   isActive 
                     ? 'bg-slate-900 text-amber-400 shadow-sm border border-slate-800' 
                     : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
                 )}
               >
-                <Icon className={cn('h-4 w-4 transition-colors', isActive ? 'text-amber-400' : 'text-slate-400')} />
-                <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
+                <div className="flex items-center gap-3">
+                  <Icon className={cn('h-4 w-4 transition-colors', isActive ? 'text-amber-400' : 'text-slate-400')} />
+                  <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
+                </div>
+
+                {isVisualLocked && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    <Lock className="w-2.5 h-2.5" />
+                    Pro
+                  </span>
+                )}
+
+                {isCampanhasLocked && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                    <Lock className="w-2.5 h-2.5" />
+                    VIP
+                  </span>
+                )}
               </NavLink>
             )
           })}

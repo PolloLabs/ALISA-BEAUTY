@@ -21,6 +21,7 @@ import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { NewAppointmentModal } from '../components/NewAppointmentModal'
 import { DonutChart, DonutCategory } from '../components/charts/DonutChart'
+import { AccountManagerCard } from '../components/common/AccountManagerCard'
 import { formatCurrency, formatDateFull } from '@/lib/formatters'
 import { cn, safeStorageGet } from '../lib/utils'
 import { Appointment } from '../types'
@@ -185,6 +186,9 @@ const appointmentStatusData: DonutCategory[] = [
           </div>
         </div>
       </Card>
+
+      {/* Gerente de Conta Dedicado (Apenas Plano Premium ou recurso ativo) */}
+      <AccountManagerCard />
 
       {/* 
         TAREFA 1.a) 4 KPIs EM CARTÕES GRANDES ANTES DE QUALQUER GRÁFICO

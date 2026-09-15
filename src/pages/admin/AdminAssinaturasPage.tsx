@@ -9,11 +9,17 @@ import {
   Clock,
   Settings,
   Trash2,
+  Crown,
+  User,
+  Phone,
+  Mail,
+  Save
 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
 import { formatCurrency } from '@/lib/formatters'
 import { safeStorageGet, safeStorageSet } from '@/lib/utils'
+import { AccountManager, DEFAULT_ACCOUNT_MANAGER } from '@/contexts/PlanContext'
 import toast from 'react-hot-toast'
 
 export interface PlanItem {
@@ -35,6 +41,9 @@ export interface Subscription {
   price: number
   start_date: string
   status: 'Ativa' | 'Pendente' | 'Cancelada'
+  manager_name?: string
+  manager_whatsapp?: string
+  manager_email?: string
 }
 
 export const DEFAULT_PLANS: PlanItem[] = [
@@ -164,6 +173,19 @@ export const AdminAssinaturasPage: React.FC = () => {
   })
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0])
   const [status, setStatus] = useState<'Ativa' | 'Pendente'>('Ativa')
+  const [subManagerName, setSubManagerName] = useState('')
+  const [subManagerWhatsapp, setSubManagerWhatsapp] = useState('')
+  const [subManagerEmail, setSubManagerEmail] = useState('')
+
+  // Estado do Gerente de Conta Dedicado (para clientes VIP / Premium)
+  const [accountManager, setAccountManager] = useState<AccountManager>(() => {
+    const stored = safeStorageGet<AccountManager>('account_manager', DEFAULT_ACCOUNT_MANAGER)
+    return stored || DEFAULT_ACCOUNT_MANAGER
+  })
+  const [managerName, setManagerName] = useState(accountManager.name)
+  const [managerWhatsapp, setManagerWhatsapp] = useState(accountManager.whatsapp)
+  const [managerEmail, setManagerEmail] = useState(accountManager.email)
+  const [managerAvatar, setManagerAvatar] = useState(accountManager.avatar || '')
 
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(() => {
     const stored = safeStorageGet<Subscription[]>('belezaflow_admin_subscriptions', [])
@@ -301,6 +323,9 @@ export const AdminAssinaturasPage: React.FC = () => {
       price: planPrice,
       start_date: startDate,
       status: status,
+      manager_name: subManagerName.trim() || (selectedPlan === 'Premium' ? accountManager.name : undefined),
+      manager_whatsapp: subManagerWhatsapp.trim() || (selectedPlan === 'Premium' ? accountManager.whatsapp : undefined),
+      manager_email: subManagerEmail.trim() || (selectedPlan === 'Premium' ? accountManager.email : undefined),
     }
 
     const updated = [newSub, ...subscriptions]
@@ -334,7 +359,33 @@ export const AdminAssinaturasPage: React.FC = () => {
     toast.success('Assinatura cadastrada com sucesso!')
     setSalonName('')
     setOwnerName('')
+    setSubManagerName('')
+    setSubManagerWhatsapp('')
+    setSubManagerEmail('')
     setIsModalOpen(false)
+  }
+
+  const handleSaveAccountManager = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!managerName.trim()) {
+      toast.error('Informe o nome do gerente de conta')
+      return
+    }
+    if (!managerWhatsapp.trim()) {
+      toast.error('Informe o WhatsApp do gerente')
+      return
+    }
+    const updated: AccountManager = {
+      name: managerName.trim(),
+      whatsapp: managerWhatsapp.trim(),
+      email: managerEmail.trim() || 'gerente@alisabeauty.com',
+      avatar: managerAvatar.trim() || undefined,
+    }
+    setAccountManager(updated)
+    safeStorageSet('account_manager', updated)
+    window.dispatchEvent(new Event('plan_changed'))
+    window.dispatchEvent(new Event('storage'))
+    toast.success('Gerente de conta VIP atualizado com sucesso!')
   }
 
   const filteredSubscriptions = subscriptions.filter((sub) => {
@@ -545,6 +596,7 @@ export const AdminAssinaturasPage: React.FC = () => {
                 <th className="px-5 py-3.5">Plano</th>
                 <th className="px-5 py-3.5">Valor Mensal</th>
                 <th className="px-5 py-3.5">Data de Início</th>
+                <th className="px-5 py-3.5">Gerente Dedicado</th>
                 <th className="px-5 py-3.5 text-right">Status</th>
               </tr>
             </thead>
@@ -583,6 +635,23 @@ export const AdminAssinaturasPage: React.FC = () => {
                     {sub.start_date.split('-').reverse().join('/')}
                   </td>
 
+                  {/* Gerente Dedicado */}
+                  <td className="px-5 py-3.5">
+                    {sub.manager_name || sub.plan === 'Premium' ? (
+                      <div>
+                        <div className="text-xs font-semibold text-slate-800 flex items-center gap-1">
+                          <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                          <span>{sub.manager_name || accountManager.name}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {sub.manager_whatsapp || accountManager.whatsapp}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400">Atendimento Padrão</span>
+                    )}
+                  </td>
+
                   {/* Status */}
                   <td className="px-5 py-3.5 text-right">
                     {sub.status === 'Ativa' ? (
@@ -614,6 +683,101 @@ export const AdminAssinaturasPage: React.FC = () => {
             </p>
           </div>
         )}
+      </Card>
+
+      {/* Painel do Gerente de Conta Dedicado (Clientes VIP & Premium) */}
+      <Card className="p-6 sm:p-7 bg-white rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Crown className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold font-luxury text-slate-900">
+                  Gerente de Conta Dedicado (VIP & Premium)
+                </h3>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                  Exclusivo Premium
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Configure os dados de contato do consultor executivo exibido no painel dos clientes do plano Premium
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveAccountManager} className="mt-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-slate-500" />
+                <span>Nome do Gerente *</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={managerName}
+                onChange={(e) => setManagerName(e.target.value)}
+                placeholder="Ex: Sophia Albuquerque"
+                className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-slate-500" />
+                <span>WhatsApp com DDD *</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={managerWhatsapp}
+                onChange={(e) => setManagerWhatsapp(e.target.value)}
+                placeholder="Ex: (11) 98765-9999"
+                className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-slate-500" />
+                <span>E-mail Corporativo</span>
+              </label>
+              <input
+                type="email"
+                value={managerEmail}
+                onChange={(e) => setManagerEmail(e.target.value)}
+                placeholder="Ex: sophia.albuquerque@alisabeauty.com"
+                className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              URL da Foto / Avatar (Opcional)
+            </label>
+            <input
+              type="text"
+              value={managerAvatar}
+              onChange={(e) => setManagerAvatar(e.target.value)}
+              placeholder="https://..."
+              className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end pt-2">
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-medium text-xs sm:text-sm border border-slate-800 shadow-sm transition-all cursor-pointer"
+            >
+              <Save className="w-4 h-4 text-amber-400" />
+              <span>Salvar Dados do Gerente Dedicado</span>
+            </button>
+          </div>
+        </form>
       </Card>
 
       {/* Modal Configurar Plano (Edição e Criação) */}
@@ -867,6 +1031,42 @@ export const AdminAssinaturasPage: React.FC = () => {
               <option value="Ativa">Ativa (Acesso Liberado)</option>
               <option value="Pendente">Pendente (Aguardando Confirmação)</option>
             </select>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100">
+            <div className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Crown className="w-3.5 h-3.5 text-amber-500" />
+              <span>Gerente de Conta Designado (Opcional)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Nome do Gerente (ex: Sophia)"
+                  value={subManagerName}
+                  onChange={(e) => setSubManagerName(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="WhatsApp (ex: (11) 98765-9999)"
+                  value={subManagerWhatsapp}
+                  onChange={(e) => setSubManagerWhatsapp(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+            <div className="mt-2">
+              <input
+                type="email"
+                placeholder="E-mail corporativo (ex: sophia@alisabeauty.com)"
+                value={subManagerEmail}
+                onChange={(e) => setSubManagerEmail(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500"
+              />
+            </div>
           </div>
 
           <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { PlanProvider } from '@/contexts/PlanContext'
 import { SalonProvider } from '@/contexts/SalonContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { MainLayout } from '@/components/layout/MainLayout'
@@ -17,6 +18,7 @@ import { AgendaPage } from '@/pages/AgendaPage'
 import { Home } from '@/pages/Home'
 import { Agenda } from '@/pages/Agenda'
 import { Clients } from '@/pages/Clients'
+import { CampanhasPage } from '@/pages/CampanhasPage'
 import { FinanceiroPage } from '@/pages/FinanceiroPage'
 import { PublicBookingPage } from '@/pages/PublicBookingPage'
 import { SuperAdminPage } from '@/pages/SuperAdminPage'
@@ -40,56 +42,59 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <SalonProvider>
-            <Routes>
-              {/* Rota Pública de Agendamento (Sem alteração, sem login) */}
-              <Route path="/agendar/:salonId" element={<PublicBookingPage />} />
-              <Route path="/agendar" element={<PublicBookingPage />} />
+          <PlanProvider>
+            <SalonProvider>
+              <Routes>
+                {/* Rota Pública de Agendamento (Sem alteração, sem login) */}
+                <Route path="/agendar/:salonId" element={<PublicBookingPage />} />
+                <Route path="/agendar" element={<PublicBookingPage />} />
 
-              {/* Rotas de Autenticação */}
-              <Route element={<AuthLayout />}>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-              </Route>
+                {/* Rotas de Autenticação */}
+                <Route element={<AuthLayout />}>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                </Route>
 
-              {/* Gate de Plano (Somente Dono sem plano ativo) */}
-              <Route path="/plan-gate" element={<PlanGateRoute />} />
+                {/* Gate de Plano (Somente Dono sem plano ativo) */}
+                <Route path="/plan-gate" element={<PlanGateRoute />} />
 
-              {/* Onboarding */}
-              <Route 
-                path="/onboarding" 
-                element={
-                  <ProtectedRoute requireSalon={false}>
-                    <Onboarding />
-                  </ProtectedRoute>
-                } 
-              />
+                {/* Onboarding */}
+                <Route 
+                  path="/onboarding" 
+                  element={
+                    <ProtectedRoute requireSalon={false}>
+                      <Onboarding />
+                    </ProtectedRoute>
+                  } 
+                />
 
-              {/* Rotas Protegidas no Layout Principal */}
-              <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-                {/* Rotas do Super Admin */}
-                <Route path="/admin" element={<SuperAdminPage />} />
-                <Route path="/admin/lojas" element={<AdminLojasPage />} />
-                <Route path="/admin/assinaturas" element={<AdminAssinaturasPage />} />
-                <Route path="/admin/configuracoes" element={<AdminConfiguracoesPage />} />
+                {/* Rotas Protegidas no Layout Principal */}
+                <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                  {/* Rotas do Super Admin */}
+                  <Route path="/admin" element={<SuperAdminPage />} />
+                  <Route path="/admin/lojas" element={<AdminLojasPage />} />
+                  <Route path="/admin/assinaturas" element={<AdminAssinaturasPage />} />
+                  <Route path="/admin/configuracoes" element={<AdminConfiguracoesPage />} />
 
-                {/* Rotas Principais */}
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/agenda" element={<AgendaPage />} />
-                <Route path="/agenda-visual" element={<Agenda />} />
-                <Route path="/clientes" element={<Clients />} />
-                <Route path="/servicos" element={<ServicesPage />} />
-                <Route path="/financeiro" element={<FinanceiroPage />} />
-                <Route path="/equipe" element={<StaffPage />} />
-                <Route path="/configuracoes" element={<SalonSettings />} />
-                <Route path="/configuracoes/salao" element={<SalonSettings />} />
-                <Route path="/home" element={<Home />} />
-              </Route>
+                  {/* Rotas Principais */}
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/agenda" element={<AgendaPage />} />
+                  <Route path="/agenda-visual" element={<Agenda />} />
+                  <Route path="/campanhas" element={<CampanhasPage />} />
+                  <Route path="/clientes" element={<Clients />} />
+                  <Route path="/servicos" element={<ServicesPage />} />
+                  <Route path="/financeiro" element={<FinanceiroPage />} />
+                  <Route path="/equipe" element={<StaffPage />} />
+                  <Route path="/configuracoes" element={<SalonSettings />} />
+                  <Route path="/configuracoes/salao" element={<SalonSettings />} />
+                  <Route path="/home" element={<Home />} />
+                </Route>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <ToastProvider />
-          </SalonProvider>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+              <ToastProvider />
+            </SalonProvider>
+          </PlanProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

@@ -31,11 +31,30 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Avatar } from '@/components/staff/Avatar'
 import { AppointmentModal } from '@/components/appointments/AppointmentModal'
 import { AppointmentFormData } from '@/components/appointments/AppointmentForm'
+import { LockedFeature } from '@/components/common/LockedFeature'
+import { usePlan } from '@/hooks/usePlan'
 import { cn } from '@/lib/utils'
 
 export function Agenda() {
   const { salon } = useSalon()
   const { getAllActiveStaff } = useStaff()
+  const { can } = usePlan()
+
+  if (!can('agenda_visual')) {
+    return (
+      <LockedFeature
+        title="Agenda Visual Multi-Profissional"
+        description="Acompanhe a grade diária dividida em colunas por profissional em tempo real com gestão visual de horários, intervalos e status de confirmação."
+        requiredPlan="Pro"
+        benefits={[
+          'Grade de horários multi-profissional em tempo real',
+          'Diferenciação visual de status com cores e indicadores',
+          'Gestão rápida de intervalos, faltas e encaixes inteligentes',
+          'Disparo rápido de mensagens e confirmação de agendamentos via WhatsApp',
+        ]}
+      />
+    )
+  }
 
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
   const [selectedStaffId, setSelectedStaffId] = useState<string>('all')

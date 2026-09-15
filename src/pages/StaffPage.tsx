@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Plus, Search, Users, Filter } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Search, Users, Filter, Crown, AlertTriangle, ArrowRight, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StaffMember, useStaff } from '@/hooks/useStaff'
+import { usePlan } from '@/hooks/usePlan'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -17,10 +19,13 @@ import { StaffFormData } from '@/components/staff/StaffForm'
 type StatusFilter = 'all' | 'active' | 'inactive'
 
 export function StaffPage() {
+  const navigate = useNavigate()
+  const { limits, planName } = usePlan()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active')
   const [page, setPage] = useState(1)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null)
   const [deletingStaff, setDeletingStaff] = useState<StaffMember | null>(null)
 
@@ -36,6 +41,12 @@ export function StaffPage() {
   } = useStaff({ search, status: statusFilter, page, pageSize: 10 })
 
   const handleCreate = () => {
+    // Enforcement: verificar se atingiu o limite de profissionais do plano
+    const activeStaffCount = staff.filter((s) => s.is_active !== false).length
+    if (activeStaffCount >= limits.maxProfessionals) {
+      setIsUpgradeModalOpen(true)
+      return
+    }
     setEditingStaff(null)
     setIsModalOpen(true)
   }
@@ -87,17 +98,57 @@ export function StaffPage() {
     inactive: 'Inativos',
   }
 
+  const nextPlanName = limits.maxProfessionals <= 2 ? 'Pro' : 'Premium'
+  const activeStaffCount = staff.filter((s) => s.is_active !== false).length
+  const isLimitReached = activeStaffCount >= limits.maxProfessionals
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Equipe"
-        description={`Gerencie os profissionais do seu estabelecimento (${total} ${total === 1 ? 'profissional' : 'profissionais'})`}
-        action={{
-          label: 'Novo profissional',
-          onClick: handleCreate,
-          icon: <Plus className="h-4 w-4" />,
-        }}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold font-luxury text-slate-900">Equipe</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Gerencie os profissionais ({activeStaffCount} de{' '}
+            {limits.maxProfessionals >= 999 ? 'ilimitados' : limits.maxProfessionals} no plano {planName})
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleCreate}
+            className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-medium"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Novo profissional
+          </Button>
+        </div>
+      </div>
+
+      {isLimitReached && limits.maxProfessionals < 999 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">
+                Limite de {limits.maxProfessionals} profissionais atingido no plano {planName}
+              </p>
+              <p className="text-xs text-slate-600">
+                Para cadastrar novos colaboradores na equipe, faça upgrade para o plano {nextPlanName}.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/plan-gate')}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-amber-400 text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer shadow-xs whitespace-nowrap"
+          >
+            <Crown className="w-3.5 h-3.5 text-amber-400" />
+            <span>Fazer Upgrade</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Filtros */}
       <Card>
@@ -286,6 +337,81 @@ export function StaffPage() {
         confirmLabel="Sim, desativar"
         variant="danger"
       />
+
+      {/* Modal de Bloqueio & Upgrade de Profissionais */}
+      <AnimatePresence>
+        {isUpgradeModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden"
+            >
+              <div className="p-6 text-center space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto text-amber-600 shadow-xs">
+                  <Users className="w-7 h-7 text-amber-600" />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 text-xs font-semibold mb-1">
+                    <Crown className="w-3.5 h-3.5 text-amber-600" />
+                    Limite do Plano {planName}
+                  </div>
+                  <h3 className="text-xl font-bold font-luxury text-slate-900">
+                    Limite de Equipe Atingido
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Seu plano atual <strong className="text-slate-900">{planName}</strong> permite até <strong className="text-slate-900">{limits.maxProfessionals} profissionais ativos</strong>.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-4 text-left border border-slate-200 text-xs space-y-2">
+                  <p className="font-semibold text-slate-800">
+                    Ao migrar para o plano <span className="text-amber-600 font-bold">{nextPlanName}</span>:
+                  </p>
+                  <ul className="space-y-1.5 text-slate-600">
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      {nextPlanName === 'Pro' ? 'Até 5 profissionais na sua equipe' : 'Profissionais ilimitados sem restrições'}
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      {nextPlanName === 'Pro' ? 'Agenda Visual multi-profissional' : 'Campanhas em lote no WhatsApp e Gerente Dedicado'}
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Checkout completo com parcelamento e sinal de 30%
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsUpgradeModalOpen(false)}
+                    className="flex-1"
+                  >
+                    Fechar
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setIsUpgradeModalOpen(false)
+                      navigate('/plan-gate')
+                    }}
+                    className="flex-1 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold flex items-center justify-center gap-2"
+                  >
+                    <Crown className="w-4 h-4 text-amber-400" />
+                    <span>Ver Upgrade</span>
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

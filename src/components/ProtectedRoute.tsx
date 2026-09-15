@@ -54,7 +54,7 @@ export function ProtectedRoute({
 
   // Se for profissional (employee), não pode acessar rotas restritas (financeiro, equipe, configurações, dashboard)
   if (user.role === 'employee') {
-    const restrictedForEmployee = ['/financeiro', '/equipe', '/configuracoes', '/configuracoes/salao', '/admin']
+    const restrictedForEmployee = ['/financeiro', '/equipe', '/configuracoes', '/configuracoes/salao', '/admin', '/campanhas']
     const isRestricted = restrictedForEmployee.some(path => location.pathname.startsWith(path))
     if (isRestricted || location.pathname === '/') {
       return <Navigate to="/agenda" replace />
