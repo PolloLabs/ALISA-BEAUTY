@@ -798,6 +798,24 @@ export function SalonSettings() {
                   </div>
                 </div>
               </div>
+              {/* Favicon do Sistema */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
+                <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-lg bg-slate-900 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold font-luxury text-slate-900">
+                      Favicon do Sistema
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Personalize o ícone exibido na aba do navegador.
+                    </p>
+                  </div>
+                </div>
+
+                <FaviconUpload />
+              </div>
 
               {/* Seletor de Cor Primária */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
