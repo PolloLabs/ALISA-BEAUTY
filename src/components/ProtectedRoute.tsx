@@ -42,6 +42,11 @@ export function ProtectedRoute({
     return <Navigate to={user.role === 'employee' ? '/agenda' : '/'} replace />
   }
 
+  // Se for super_admin, ele só pode acessar rotas /admin. Redireciona para /admin se tentar acessar rotas operacionais
+  if (user.role === 'super_admin' && !location.pathname.startsWith('/admin')) {
+    return <Navigate to="/admin" replace />
+  }
+
   // Se for dono (owner) e o plano não estiver ativo (e não estiver já na rota /plan-gate)
   if (checkPlan && user.role === 'owner' && user.plan_status !== 'active' && location.pathname !== '/plan-gate') {
     return <Navigate to="/plan-gate" replace />

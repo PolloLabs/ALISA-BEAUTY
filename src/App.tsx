@@ -20,6 +20,9 @@ import { Clients } from '@/pages/Clients'
 import { FinanceiroPage } from '@/pages/FinanceiroPage'
 import { PublicBookingPage } from '@/pages/PublicBookingPage'
 import { SuperAdminPage } from '@/pages/SuperAdminPage'
+import { AdminLojasPage } from '@/pages/admin/AdminLojasPage'
+import { AdminAssinaturasPage } from '@/pages/admin/AdminAssinaturasPage'
+import { AdminConfiguracoesPage } from '@/pages/admin/AdminConfiguracoesPage'
 import { PlanGate } from '@/pages/PlanGate'
 
 // Componente wrapper para o Gate de Plano com redirecionamento pós ativação
@@ -64,8 +67,11 @@ function App() {
 
               {/* Rotas Protegidas no Layout Principal */}
               <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-                {/* Rota do Super Admin */}
+                {/* Rotas do Super Admin */}
                 <Route path="/admin" element={<SuperAdminPage />} />
+                <Route path="/admin/lojas" element={<AdminLojasPage />} />
+                <Route path="/admin/assinaturas" element={<AdminAssinaturasPage />} />
+                <Route path="/admin/configuracoes" element={<AdminConfiguracoesPage />} />
 
                 {/* Rotas Principais */}
                 <Route path="/" element={<Dashboard />} />

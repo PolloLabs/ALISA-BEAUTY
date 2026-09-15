@@ -16,9 +16,32 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const [adminPhoto, setAdminPhoto] = useState<string | null>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('admin_photo') : null
+  })
+  const [ownerPhoto, setOwnerPhoto] = useState<string | null>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('owner_photo') : null
+  })
+
+  useEffect(() => {
+    const handleIdentityChange = () => {
+      setAdminPhoto(localStorage.getItem('admin_photo'))
+      setOwnerPhoto(localStorage.getItem('owner_photo'))
+    }
+    window.addEventListener('app_identity_changed', handleIdentityChange)
+    window.addEventListener('storage', handleIdentityChange)
+    return () => {
+      window.removeEventListener('app_identity_changed', handleIdentityChange)
+      window.removeEventListener('storage', handleIdentityChange)
+    }
+  }, [])
+
   const getPageTitle = () => {
     const path = location.pathname
     if (path === '/admin') return 'Dashboard'
+    if (path === '/admin/lojas') return 'Lojas'
+    if (path === '/admin/assinaturas') return 'Assinaturas'
+    if (path === '/admin/configuracoes') return 'Configurações'
     if (path === '/') return 'Dashboard'
     if (path === '/agenda') return user?.role === 'employee' ? 'Minha Agenda' : 'Agenda'
     if (path === '/agenda-visual') return 'Agenda Visual'
@@ -93,9 +116,23 @@ export function Header({ onMenuClick, rightActions }: HeaderProps) {
             className="flex items-center gap-2.5 h-10 px-2 rounded-xl hover:bg-slate-100/80 transition-colors cursor-pointer"
           >
             <div 
-              className="h-8 w-8 rounded-xl bg-slate-900 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xs font-bold shadow-xs flex-shrink-0"
+              className="h-8 w-8 rounded-xl bg-slate-900 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xs font-bold shadow-xs flex-shrink-0 overflow-hidden"
             >
-              {getInitials(user?.fullName)}
+              {user?.role === 'super_admin' ? (
+                adminPhoto ? (
+                  <img src={adminPhoto} alt="Admin" className="h-full w-full object-cover" />
+                ) : (
+                  <span>SA</span>
+                )
+              ) : user?.role === 'owner' ? (
+                ownerPhoto ? (
+                  <img src={ownerPhoto} alt="Dono" className="h-full w-full object-cover" />
+                ) : (
+                  getInitials(user?.fullName)
+                )
+              ) : (
+                getInitials(user?.fullName)
+              )}
             </div>
             <div className="hidden md:block text-left">
               <p className="text-xs font-semibold text-slate-900 leading-tight">

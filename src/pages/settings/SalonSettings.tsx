@@ -26,13 +26,14 @@ import {
   ShieldCheck,
   Percent,
   CheckCircle2,
-  Power
+  Power,
+  User
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useSalon } from '@/hooks/useSalon';
 import { ShareBookingLink } from '@/components/ShareBookingLink';
 import { BusinessType } from '@/types';
-import { cn, safeStorageGet } from '@/lib/utils';
+import { cn, safeStorageGet, resizeImageToMax256 } from '@/lib/utils';
 
 type SettingsTab = 'dados' | 'personalizacao' | 'geral' | 'pagamentos' | 'link';
 
@@ -131,6 +132,43 @@ export function SalonSettings() {
 
   // File input ref for logo upload
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Form State: Foto do Perfil do Dono (Header Direito)
+  const [ownerPhoto, setOwnerPhoto] = useState<string | null>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('owner_photo') : null;
+  });
+  const [isProcessingOwnerPhoto, setIsProcessingOwnerPhoto] = useState(false);
+  const ownerPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOwnerPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsProcessingOwnerPhoto(true);
+      const base64 = await resizeImageToMax256(file);
+      localStorage.setItem('owner_photo', base64);
+      setOwnerPhoto(base64);
+      window.dispatchEvent(new Event('app_identity_changed'));
+      window.dispatchEvent(new Event('storage'));
+      toast.success('Foto do perfil atualizada com sucesso!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao processar foto do perfil');
+    } finally {
+      setIsProcessingOwnerPhoto(false);
+      if (ownerPhotoInputRef.current) {
+        ownerPhotoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveOwnerPhoto = () => {
+    localStorage.removeItem('owner_photo');
+    setOwnerPhoto(null);
+    window.dispatchEvent(new Event('app_identity_changed'));
+    window.dispatchEvent(new Event('storage'));
+    toast.success('Foto do perfil removida.');
+  };
 
   // Sync state when salon data loads
   useEffect(() => {
@@ -636,6 +674,87 @@ export function SalonSettings() {
                     </div>
                     <p className="text-[11px] text-slate-500">
                       Recomendado: imagem quadrada ou proporção 1:1, formato PNG ou JPG até 5MB.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Upload de Foto do Perfil (Header Direito) */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-5">
+                <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-lg bg-slate-900 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold font-luxury text-slate-900">
+                      Foto do Perfil do Responsável
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Foto de identificação pessoal exibida no avatar do cabeçalho superior direito
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                  <div className="relative w-24 h-24 rounded-2xl bg-slate-900 border-2 border-dashed border-amber-500/40 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                    {ownerPhoto ? (
+                      <>
+                        <img
+                          src={ownerPhoto}
+                          alt="Foto do Perfil"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveOwnerPhoto}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+                          title="Remover foto do perfil"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center p-2">
+                        <User className="w-7 h-7 text-amber-400 mx-auto mb-1 opacity-80" />
+                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider block">
+                          Sem Foto
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 flex-1">
+                    <input
+                      ref={ownerPhotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleOwnerPhotoUpload}
+                      className="hidden"
+                    />
+                    <div className="flex flex-wrap gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => ownerPhotoInputRef.current?.click()}
+                        disabled={isProcessingOwnerPhoto}
+                        className="flex items-center gap-2 h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-500 font-medium text-xs border border-slate-800 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{isProcessingOwnerPhoto ? 'Processando...' : ownerPhoto ? 'Alterar Foto' : 'Fazer Upload de Foto'}</span>
+                      </button>
+
+                      {ownerPhoto && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveOwnerPhoto}
+                          className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Remover</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Redimensionamento automático para até <strong>256px</strong> via canvas. Atualização instantânea no avatar do cabeçalho.
                     </p>
                   </div>
                 </div>

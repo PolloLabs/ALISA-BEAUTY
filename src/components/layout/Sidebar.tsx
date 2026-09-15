@@ -1,18 +1,19 @@
+import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { 
   LayoutDashboard, 
   Calendar, 
-  CalendarDays,
-  UserCheck,
+  CalendarDays, 
+  UserCheck, 
   Scissors, 
   Settings, 
-  DollarSign,
-  X,
-  Sparkles,
-  ExternalLink,
-  ShieldCheck,
-  Briefcase,
-  Users,
+  DollarSign, 
+  X, 
+  Sparkles, 
+  ExternalLink, 
+  ShieldCheck, 
+  Building2, 
+  CreditCard 
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSalon } from '@/hooks/useSalon'
@@ -29,6 +30,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { salon } = useSalon()
   const { user } = useAuth()
 
+  const [systemLogo, setSystemLogo] = useState<string | null>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('system_logo') : null
+  })
+
+  useEffect(() => {
+    const handleIdentityChange = () => {
+      setSystemLogo(localStorage.getItem('system_logo'))
+    }
+    window.addEventListener('app_identity_changed', handleIdentityChange)
+    window.addEventListener('storage', handleIdentityChange)
+    return () => {
+      window.removeEventListener('app_identity_changed', handleIdentityChange)
+      window.removeEventListener('storage', handleIdentityChange)
+    }
+  }, [])
+
   const handleNavClick = () => {
     if (window.innerWidth < 768) {
       onClose()
@@ -40,19 +57,30 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const role = user?.role || 'owner'
 
   // Restrição de rotas por perfil:
-  // - Profissional (employee): NÃO vê financeiro, equipe, configurações. Vê APENAS sua agenda (/agenda) e agenda visual (/agenda-visual).
-  // - Super Admin: Vê Gestão Geral (/admin), Dashboard (/), Agenda (/agenda), etc.
-  // - Dono (owner): Vê tudo do salão.
-  const menuItems = [
-    ...(role === 'super_admin' ? [{ to: '/admin', label: 'Painel Geral', icon: ShieldCheck }] : []),
-    ...(role !== 'employee' ? [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
-    { to: '/agenda', label: role === 'employee' ? 'Minha Agenda' : 'Agenda', icon: Calendar },
-    { to: '/agenda-visual', label: 'Agenda Visual', icon: CalendarDays },
-    ...(role !== 'employee' ? [{ to: '/servicos', label: 'Serviços', icon: Scissors }] : []),
-    ...(role !== 'employee' ? [{ to: '/financeiro', label: 'Financeiro', icon: DollarSign }] : []),
-    ...(role !== 'employee' ? [{ to: '/equipe', label: 'Equipe', icon: UserCheck }] : []),
-    ...(role !== 'employee' ? [{ to: '/configuracoes/salao', label: 'Configurações', icon: Settings }] : []),
-  ]
+  // - Super Admin: Painel Geral (/admin), Lojas (/admin/lojas), Assinaturas (/admin/assinaturas), Configurações (/admin/configuracoes).
+  // - Profissional (employee): Vê APENAS Minha Agenda (/agenda) e Agenda Visual (/agenda-visual).
+  // - Dono (owner): Vê todas as rotas operacionais do salão.
+  const menuItems = role === 'super_admin'
+    ? [
+        { to: '/admin', label: 'Painel Geral', icon: ShieldCheck },
+        { to: '/admin/lojas', label: 'Lojas', icon: Building2 },
+        { to: '/admin/assinaturas', label: 'Assinaturas', icon: CreditCard },
+        { to: '/admin/configuracoes', label: 'Configurações', icon: Settings },
+      ]
+    : role === 'employee'
+    ? [
+        { to: '/agenda', label: 'Minha Agenda', icon: Calendar },
+        { to: '/agenda-visual', label: 'Agenda Visual', icon: CalendarDays },
+      ]
+    : [
+        { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/agenda', label: 'Agenda', icon: Calendar },
+        { to: '/agenda-visual', label: 'Agenda Visual', icon: CalendarDays },
+        { to: '/servicos', label: 'Serviços', icon: Scissors },
+        { to: '/financeiro', label: 'Financeiro', icon: DollarSign },
+        { to: '/equipe', label: 'Equipe', icon: UserCheck },
+        { to: '/configuracoes/salao', label: 'Configurações', icon: Settings },
+      ]
 
   return (
     <>
@@ -73,7 +101,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-200/80 bg-white">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="h-9 w-9 rounded-xl bg-slate-900 border border-amber-500/40 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
-              {salon?.logo_url ? (
+              {role === 'super_admin' ? (
+                systemLogo ? (
+                  <img src={systemLogo} alt="Logo do Sistema" className="h-full w-full object-cover" />
+                ) : (
+                  <LogoIcon className="h-4 w-4 text-amber-400" />
+                )
+              ) : salon?.logo_url ? (
                 <img src={salon.logo_url} alt="" className="h-full w-full object-cover" />
               ) : (
                 <LogoIcon className="h-4 w-4 text-amber-400" />
@@ -124,20 +158,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Public Booking Link Card */}
-        <div className="p-3.5 border-t border-slate-100 bg-amber-50/40">
-          <a
-            href={`/agendar/${salon?.id || 'demo'}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-amber-200/80 text-xs font-semibold text-slate-900 hover:border-amber-400 hover:shadow-xs transition-all group cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>Link do Cliente</span>
-            </div>
-            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
-          </a>
-        </div>
+        {role !== 'super_admin' && (
+          <div className="p-3.5 border-t border-slate-100 bg-amber-50/40">
+            <a
+              href={`/agendar/${salon?.id || 'demo'}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-amber-200/80 text-xs font-semibold text-slate-900 hover:border-amber-400 hover:shadow-xs transition-all group cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>Link do Cliente</span>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
+            </a>
+          </div>
+        )}
       </aside>
     </>
   )

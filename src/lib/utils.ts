@@ -48,3 +48,56 @@ export function safeStorageSet<T>(key: string, value: T): boolean {
     return false
   }
 }
+
+/**
+ * Redimensiona um arquivo de imagem para no máximo 256px de largura/altura
+ * utilizando HTMLCanvasElement e retorna a imagem em base64.
+ * Evita estouro de cota do localStorage.
+ */
+export function resizeImageToMax256(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('Formato de arquivo inválido. Por favor selecione uma imagem.'))
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (readerEvent) => {
+      const img = new Image()
+      img.onload = () => {
+        const maxDimension = 256
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width)
+            width = maxDimension
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height)
+            height = maxDimension
+          }
+        }
+
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Contexto 2D do Canvas indisponível'))
+          return
+        }
+
+        ctx.drawImage(img, 0, 0, width, height)
+        const dataUrl = canvas.toDataURL('image/png', 0.9)
+        resolve(dataUrl)
+      }
+      img.onerror = () => reject(new Error('Erro ao processar dimensões da imagem'))
+      img.src = readerEvent.target?.result as string
+    }
+    reader.onerror = () => reject(new Error('Erro ao carregar arquivo de imagem'))
+    reader.readAsDataURL(file)
+  })
+}
