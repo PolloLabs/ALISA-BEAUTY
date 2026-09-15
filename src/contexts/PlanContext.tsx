@@ -88,6 +88,11 @@ export const FEATURE_DEFINITIONS: Record<string, { label: string; description: s
     description: 'Filtro inteligente de clientes inativos e disparos de reengajamento via WhatsApp',
     minPlan: 'premium',
   },
+  multi_unidades: {
+    label: 'Gestão Multi-Unidades',
+    description: 'Cadastro de filiais, distribuição de equipe por unidade e faturamento segregado',
+    minPlan: 'premium',
+  },
   gerente_dedicado: {
     label: 'Gerente de conta dedicado',
     description: 'Consultor executivo VIP com suporte direto e reuniões periódicas de crescimento',

@@ -9,6 +9,7 @@ interface LockedFeatureProps {
   title: string
   description: string
   requiredPlan?: 'Pro' | 'Premium'
+  buttonText?: string
   benefits?: string[]
 }
 
@@ -16,6 +17,7 @@ export const LockedFeature: React.FC<LockedFeatureProps> = ({
   title,
   description,
   requiredPlan = 'Pro',
+  buttonText,
   benefits = [],
 }) => {
   const navigate = useNavigate()
@@ -37,7 +39,7 @@ export const LockedFeature: React.FC<LockedFeatureProps> = ({
 
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              Recurso Exclusivo Plano {requiredPlan}
+              Recurso Exclusivo {requiredPlan === 'Pro' ? 'Pro+' : 'Premium'}
             </span>
           </div>
 
@@ -77,7 +79,7 @@ export const LockedFeature: React.FC<LockedFeatureProps> = ({
               size="lg"
               className="w-full h-12 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-xl shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>Fazer Upgrade para {requiredPlan}</span>
+              <span>{buttonText || `Fazer Upgrade para ${requiredPlan}`}</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
