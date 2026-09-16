@@ -35,7 +35,6 @@ import { toast } from 'react-hot-toast';
 import { useSalon } from '@/hooks/useSalon';
 import { usePlan } from '@/hooks/usePlan';
 import { ShareBookingLink } from '@/components/ShareBookingLink';
-import { FaviconUpload } from '@/components/ui/FaviconUpload';
 import { BusinessType } from '@/types';
 import { cn, safeStorageGet, resizeImageToMax256 } from '@/lib/utils';
 
