@@ -1,10 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Upload, Loader2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
 import { Button } from './Button'
 
-const FAVICON_PATH = 'favicon/system-favicon.png'
+const FAVICON_STORAGE_KEY = 'system_favicon'
 
 interface FaviconUploadProps {
   className?: string
@@ -12,26 +11,31 @@ interface FaviconUploadProps {
 
 export function FaviconUpload({ className }: FaviconUploadProps) {
   const [uploading, setUploading] = useState(false)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [preview, setPreview] = useState<string | null>(() => {
+    return localStorage.getItem(FAVICON_STORAGE_KEY)
+  })
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const getFaviconUrl = () => {
-    if (!supabase) return null
+  useEffect(() => {
+    const savedFavicon = localStorage.getItem(FAVICON_STORAGE_KEY)
 
-    const { data } = supabase.storage
-      .from('salon-assets')
-      .getPublicUrl(FAVICON_PATH)
-
-    return `${data.publicUrl}?t=${Date.now()}`
-  }
-
-  const loadCurrentFavicon = () => {
-    const url = getFaviconUrl()
-
-    if (url) {
-      setPreview(url)
+    if (savedFavicon) {
+      setPreview(savedFavicon)
+      updateFavicon(savedFavicon)
     }
+  }, [])
+
+  const updateFavicon = (faviconUrl: string) => {
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+
+    link.href = faviconUrl
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,7 +48,15 @@ export function FaviconUpload({ className }: FaviconUploadProps) {
       return
     }
 
-    if (!['image/png', 'image/jpeg', 'image/svg+xml', 'image/x-icon'].includes(file.type)) {
+    if (
+      ![
+        'image/png',
+        'image/jpeg',
+        'image/svg+xml',
+        'image/x-icon',
+        'image/vnd.microsoft.icon',
+      ].includes(file.type)
+    ) {
       toast.error('Use PNG, JPG, SVG ou ICO')
       return
     }
@@ -65,11 +77,6 @@ export function FaviconUpload({ className }: FaviconUploadProps) {
   }
 
   const handleSave = async () => {
-    if (!supabase) {
-      toast.error('Supabase não está disponível')
-      return
-    }
-
     if (!selectedFile) {
       toast.error('Selecione um favicon antes de salvar')
       return
@@ -78,46 +85,34 @@ export function FaviconUpload({ className }: FaviconUploadProps) {
     setUploading(true)
 
     try {
-      const { error } = await supabase.storage
-        .from('salon-assets')
-        .upload(FAVICON_PATH, selectedFile, {
-          upsert: true,
-          contentType: selectedFile.type,
-          cacheControl: '0',
-        })
+      const reader = new FileReader()
 
-      if (error) {
-        throw error
+      reader.onloadend = () => {
+        const base64 = reader.result as string
+
+        localStorage.setItem(FAVICON_STORAGE_KEY, base64)
+
+        setPreview(base64)
+        setSelectedFile(null)
+
+        updateFavicon(base64)
+
+        window.dispatchEvent(new Event('favicon_changed'))
+        window.dispatchEvent(new Event('storage'))
+
+        toast.success('Favicon atualizado com sucesso!')
+        setUploading(false)
       }
 
-      const faviconUrl = getFaviconUrl()
-
-      if (faviconUrl) {
-        let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
-
-        if (!link) {
-          link = document.createElement('link')
-          link.rel = 'icon'
-          document.head.appendChild(link)
-        }
-
-        link.href = faviconUrl
+      reader.onerror = () => {
+        toast.error('Erro ao ler o arquivo do favicon')
+        setUploading(false)
       }
 
-      setSelectedFile(null)
-      setPreview(faviconUrl)
-
-      toast.success('Favicon atualizado com sucesso!')
-    } catch (error: unknown) {
+      reader.readAsDataURL(selectedFile)
+    } catch (error) {
       console.error(error)
-
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Erro ao salvar o favicon'
-
-      toast.error(message)
-    } finally {
+      toast.error('Erro ao salvar o favicon')
       setUploading(false)
     }
   }
@@ -147,7 +142,7 @@ export function FaviconUpload({ className }: FaviconUploadProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".png,.jpg,.jpeg,.svg,.ico,image/png,image/jpeg,image/svg+xml,image/x-icon"
+            accept=".png,.jpg,.jpeg,.svg,.ico,image/png,image/jpeg,image/svg+xml,image/x-icon,image/vnd.microsoft.icon"
             onChange={handleFileChange}
             className="hidden"
           />
@@ -183,16 +178,6 @@ export function FaviconUpload({ className }: FaviconUploadProps) {
           </p>
         </div>
       </div>
-
-      {!preview && (
-        <button
-          type="button"
-          onClick={loadCurrentFavicon}
-          className="text-xs text-slate-400 hover:text-slate-600 mt-2"
-        >
-          Carregar favicon atual
-        </button>
-      )}
     </div>
   )
 }
