@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { resizeImageToMax256 } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { FaviconUpload } from '@/components/ui/FaviconUpload'
 
 export const AdminConfiguracoesPage: React.FC = () => {
   // Staged Preview States (Inicia com o que está no localStorage)
