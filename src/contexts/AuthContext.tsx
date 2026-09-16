@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: 'admin-1',
           email: 'admin@belezaflow.com',
           fullName: 'Super Administrador',
-          salonName: 'BelezaFlow Platform',
+          salonName: 'ALISA BEAUTY',
           role: 'super_admin',
           plan_status: 'active',
         }
