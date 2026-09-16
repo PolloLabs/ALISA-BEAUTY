@@ -16,6 +16,7 @@ export interface StaffMember {
   email: string | null
   avatar_url: string | null
   password?: string
+  unit_ids?: string[]
 }
 
 export interface StoredProfessional {
@@ -49,6 +50,7 @@ interface UseStaffReturn {
     password?: string
     job_title?: string
     commission_rate: number
+    unit_ids?: string[]
   }) => Promise<boolean>
   updateStaff: (id: string, data: {
     full_name?: string
@@ -57,6 +59,7 @@ interface UseStaffReturn {
     password?: string
     job_title?: string
     commission_rate?: number
+    unit_ids?: string[]
   }) => Promise<boolean>
   deleteStaff: (id: string) => Promise<boolean>
   toggleStaffStatus: (id: string, isActive: boolean) => Promise<boolean>
@@ -246,6 +249,7 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     password?: string
     job_title?: string
     commission_rate: number
+    unit_ids?: string[]
   }) => {
     if (!salon) return false
 
@@ -293,6 +297,7 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
           email: staffEmail,
           avatar_url: null,
           password: staffPassword,
+          unit_ids: data.unit_ids || [],
         }
         saveLocalStaff([newMember, ...current])
       }
@@ -332,6 +337,7 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     password?: string
     job_title?: string
     commission_rate?: number
+    unit_ids?: string[]
   }) => {
     try {
       if (supabase) {
@@ -380,6 +386,7 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
                 ...(data.job_title !== undefined && { job_title: data.job_title }),
                 ...(data.commission_rate !== undefined && { commission_rate: data.commission_rate }),
                 ...(data.password ? { password: data.password } : {}),
+                ...(data.unit_ids !== undefined && { unit_ids: data.unit_ids }),
               }
             }
             return s

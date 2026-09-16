@@ -4,6 +4,8 @@ import { Plus, Search, Users, Filter, Crown, AlertTriangle, ArrowRight, X } from
 import { motion, AnimatePresence } from 'framer-motion'
 import { StaffMember, useStaff } from '@/hooks/useStaff'
 import { usePlan } from '@/hooks/usePlan'
+import { useSalon } from '@/hooks/useSalon'
+import { safeStorageGet } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -20,6 +22,7 @@ type StatusFilter = 'all' | 'active' | 'inactive'
 
 export function StaffPage() {
   const navigate = useNavigate()
+  const { salon } = useSalon()
   const { limits, planName } = usePlan()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active')
@@ -41,9 +44,13 @@ export function StaffPage() {
   } = useStaff({ search, status: statusFilter, page, pageSize: 10 })
 
   const handleCreate = () => {
-    // Enforcement: verificar se atingiu o limite de profissionais do plano
-    const activeStaffCount = staff.filter((s) => s.is_active !== false).length
-    if (activeStaffCount >= limits.maxProfessionals) {
+    // Enforcement: verificar se profissionais cadastrados >= max do plano
+    const allStored = safeStorageGet<StaffMember[]>('belezaflow_staff', [])
+    const registeredCount = (allStored && allStored.length > 0)
+      ? allStored.filter((s) => !salon?.id || !s.salon_id || s.salon_id === salon.id).length
+      : (total || staff.length)
+
+    if (registeredCount >= limits.maxProfessionals) {
       setIsUpgradeModalOpen(true)
       return
     }
@@ -79,6 +86,7 @@ export function StaffPage() {
         password: data.password || undefined,
         job_title: data.job_title,
         commission_rate: data.commission_rate,
+        unit_ids: data.unit_ids,
       })
     } else {
       return await createStaff({
@@ -88,6 +96,7 @@ export function StaffPage() {
         password: data.password || undefined,
         job_title: data.job_title,
         commission_rate: data.commission_rate,
+        unit_ids: data.unit_ids,
       })
     }
   }
@@ -359,29 +368,25 @@ export function StaffPage() {
                     Limite do Plano {planName}
                   </div>
                   <h3 className="text-xl font-bold font-luxury text-slate-900">
-                    Limite de Equipe Atingido
+                    Limite do plano atingido
                   </h3>
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    Seu plano atual <strong className="text-slate-900">{planName}</strong> permite até <strong className="text-slate-900">{limits.maxProfessionals} profissionais ativos</strong>.
+                    Seu plano atual <strong className="text-slate-900">{planName}</strong> permite até <strong className="text-slate-900">{limits.maxProfessionals} profissionais cadastrados</strong>.
                   </p>
                 </div>
 
                 <div className="bg-slate-50 rounded-xl p-4 text-left border border-slate-200 text-xs space-y-2">
                   <p className="font-semibold text-slate-800">
-                    Ao migrar para o plano <span className="text-amber-600 font-bold">{nextPlanName}</span>:
+                    Faça upgrade para cadastrar novos profissionais:
                   </p>
                   <ul className="space-y-1.5 text-slate-600">
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                      {nextPlanName === 'Pro' ? 'Até 5 profissionais na sua equipe' : 'Profissionais ilimitados sem restrições'}
+                      {nextPlanName === 'Pro' ? 'Plano Pro: Até 5 profissionais na sua equipe' : 'Plano Premium: Profissionais ilimitados'}
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                      {nextPlanName === 'Pro' ? 'Agenda Visual multi-profissional' : 'Campanhas em lote no WhatsApp e Gerente Dedicado'}
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                      Checkout completo com parcelamento e sinal de 30%
+                      {nextPlanName === 'Pro' ? 'Agenda Visual multi-profissional completa' : 'Gestão Multi-Unidades e Campanhas WhatsApp'}
                     </li>
                   </ul>
                 </div>
@@ -404,7 +409,7 @@ export function StaffPage() {
                     className="flex-1 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold flex items-center justify-center gap-2"
                   >
                     <Crown className="w-4 h-4 text-amber-400" />
-                    <span>Ver Upgrade</span>
+                    <span>Fazer Upgrade</span>
                   </Button>
                 </div>
               </div>

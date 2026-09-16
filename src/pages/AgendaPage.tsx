@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { format, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { motion } from 'framer-motion'
@@ -15,6 +16,7 @@ import {
   Filter,
   CreditCard,
   Percent,
+  Building2,
 } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/formatters'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -26,12 +28,20 @@ import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useSalon } from '@/context/SalonContext'
+import { usePlan } from '@/hooks/usePlan'
+import { useUnits } from '@/hooks/useUnits'
 
 export function AgendaPage() {
   const { user } = useAuth()
   const { appointments, updateAppointmentStatus, professionals, loading } = useSalon()
+  const [searchParams] = useSearchParams()
+  const { can } = usePlan()
+  const { units } = useUnits()
+  const hasMultiUnits = can('multi_unidades')
+
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [staffFilter, setStaffFilter] = useState<string>('all')
+  const [unitFilter, setUnitFilter] = useState<string>(() => searchParams.get('unit') || 'all')
 
   const isEmployee = user?.role === 'employee'
 
@@ -51,15 +61,17 @@ export function AgendaPage() {
       const aptStaffId = apt.staff_id || apt.professional_id
       const aptStaffName = apt.professional_name || ''
 
-      if (isEmployee) {
-        if (currentStaffId === '3') {
-          return aptStaffId === '3' || aptStaffName.toLowerCase().includes('ana')
-        }
-        return aptStaffId === currentStaffId || aptStaffName.toLowerCase() === user?.fullName?.toLowerCase()
-      }
-      return staffFilter === 'all' || aptStaffId === staffFilter
+      const matchesStaff = isEmployee
+        ? (currentStaffId === '3'
+            ? aptStaffId === '3' || aptStaffName.toLowerCase().includes('ana')
+            : aptStaffId === currentStaffId || aptStaffName.toLowerCase() === user?.fullName?.toLowerCase())
+        : (staffFilter === 'all' || aptStaffId === staffFilter)
+
+      const matchesUnit = !hasMultiUnits || unitFilter === 'all' || apt.unit_id === unitFilter
+
+      return matchesStaff && matchesUnit
     })
-  }, [appointments, isEmployee, currentStaffId, user, staffFilter])
+  }, [appointments, isEmployee, currentStaffId, user, staffFilter, hasMultiUnits, unitFilter])
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
 
@@ -170,20 +182,40 @@ export function AgendaPage() {
 
             {/* Filtro de Profissionais (apenas para donos e administradores) */}
             {!isEmployee && (
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-slate-400 hidden sm:block" />
-                <select
-                  value={staffFilter}
-                  onChange={(e) => setStaffFilter(e.target.value)}
-                  className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:border-amber-500 cursor-pointer"
-                >
-                  <option value="all">Todos os profissionais</option>
-                  {professionals.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap items-center gap-2">
+                {hasMultiUnits && units.length > 0 && (
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 h-10">
+                    <Building2 className="h-4 w-4 text-amber-600" />
+                    <select
+                      value={unitFilter}
+                      onChange={(e) => setUnitFilter(e.target.value)}
+                      className="bg-transparent text-sm text-slate-800 font-medium focus:outline-none cursor-pointer"
+                    >
+                      <option value="all">Todas as unidades</option>
+                      {units.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1.5">
+                  <Filter className="h-4 w-4 text-slate-400 hidden sm:block" />
+                  <select
+                    value={staffFilter}
+                    onChange={(e) => setStaffFilter(e.target.value)}
+                    className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:border-amber-500 cursor-pointer"
+                  >
+                    <option value="all">Todos os profissionais</option>
+                    {professionals.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
           </div>

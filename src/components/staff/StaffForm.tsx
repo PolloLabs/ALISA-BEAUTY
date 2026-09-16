@@ -2,9 +2,12 @@ import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { User, Mail, Percent, Briefcase, Lock, Eye, EyeOff } from 'lucide-react'
+import { User, Mail, Percent, Briefcase, Lock, Eye, EyeOff, Building2 } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { InputMaskField } from '@/components/ui/InputMask'
+import { useUnits } from '@/hooks/useUnits'
+import { usePlan } from '@/hooks/usePlan'
+import { cn } from '@/lib/utils'
 
 const jobTitleOptions = [
   'Cabeleireiro(a)',
@@ -43,6 +46,7 @@ export const staffFormSchema = z.object({
     .min(0, 'Mínimo 0%')
     .max(100, 'Máximo 100%')
     .refine((val) => !isNaN(val), 'Valor inválido'),
+  unit_ids: z.array(z.string()).optional(),
 })
 
 export type StaffFormData = z.infer<typeof staffFormSchema>
@@ -57,6 +61,9 @@ interface StaffFormProps {
 export function StaffForm({ defaultValues, onSubmit, onCancel, isLoading }: StaffFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const isEditing = !!defaultValues?.full_name
+  const { can } = usePlan()
+  const { units } = useUnits()
+  const hasMultiUnits = can('multi_unidades') && units && units.length > 0
 
   const {
     register,
@@ -73,12 +80,14 @@ export function StaffForm({ defaultValues, onSubmit, onCancel, isLoading }: Staf
       password: '',
       job_title: 'Cabeleireiro(a)',
       commission_rate: 50,
+      unit_ids: [],
       ...defaultValues,
     },
   })
 
   const phoneValue = watch('phone')
   const commissionValue = watch('commission_rate')
+  const selectedUnitIds = watch('unit_ids') || []
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -185,6 +194,51 @@ export function StaffForm({ defaultValues, onSubmit, onCancel, isLoading }: Staf
           O profissional receberá <span className="font-semibold text-amber-600">{commissionValue}%</span> do valor de cada atendimento registrado
         </p>
       </div>
+
+      {hasMultiUnits && (
+        <div className="pt-2 border-t border-slate-200">
+          <label className="block text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5">
+            <Building2 className="w-4 h-4 text-amber-600" />
+            Unidades de Atendimento
+          </label>
+          <p className="text-xs text-slate-500 mb-2.5">
+            Selecione em quais unidades este profissional atende:
+          </p>
+          <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+            {units.map((u) => {
+              const isChecked = selectedUnitIds.includes(u.id)
+              return (
+                <label
+                  key={u.id}
+                  className={cn(
+                    'flex items-center gap-2.5 p-2.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors',
+                    isChecked
+                      ? 'border-amber-500 bg-amber-50/60 text-slate-900'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setValue('unit_ids', [...selectedUnitIds, u.id])
+                      } else {
+                        setValue('unit_ids', selectedUnitIds.filter((id) => id !== u.id))
+                      }
+                    }}
+                    className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                  />
+                  <div className="flex-1 truncate">
+                    <span className="font-semibold block truncate text-slate-900">{u.name}</span>
+                    <span className="text-[11px] text-slate-500 truncate block">{u.address}</span>
+                  </div>
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
         {onCancel && (

@@ -30,6 +30,15 @@ export interface Salon {
   slug?: string;
 }
 
+export interface Unit {
+  id: string;
+  name: string;
+  address: string;
+  salon_id: string;
+  phone?: string;
+  created_at?: string;
+}
+
 export interface Staff {
   id: string;
   salon_id: string;
@@ -37,6 +46,7 @@ export interface Staff {
   job_title: string | null;
   commission_rate: number;
   is_active: boolean;
+  unit_ids?: string[];
 }
 
 export type AppointmentStatus =
@@ -98,6 +108,7 @@ export interface Appointment {
   time?: string; // HH:mm
   duration_minutes?: number;
   price?: number;
+  unit_id?: string;
 }
 
 export interface Payment {

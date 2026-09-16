@@ -20,6 +20,7 @@ import { Agenda } from '@/pages/Agenda'
 import { Clients } from '@/pages/Clients'
 import { CampanhasPage } from '@/pages/CampanhasPage'
 import { FinanceiroPage } from '@/pages/FinanceiroPage'
+import { UnidadesPage } from '@/pages/UnidadesPage'
 import { PublicBookingPage } from '@/pages/PublicBookingPage'
 import { SuperAdminPage } from '@/pages/SuperAdminPage'
 import { AdminLojasPage } from '@/pages/admin/AdminLojasPage'
@@ -84,6 +85,7 @@ function App() {
                   <Route path="/clientes" element={<Clients />} />
                   <Route path="/servicos" element={<ServicesPage />} />
                   <Route path="/financeiro" element={<FinanceiroPage />} />
+                  <Route path="/unidades" element={<UnidadesPage />} />
                   <Route path="/equipe" element={<StaffPage />} />
                   <Route path="/configuracoes" element={<SalonSettings />} />
                   <Route path="/configuracoes/salao" element={<SalonSettings />} />

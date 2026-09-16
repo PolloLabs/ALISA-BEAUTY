@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DollarSign,
@@ -20,11 +20,13 @@ import {
   CreditCard,
   Building2,
   Crown,
-  Lock
+  Lock,
+  Store
 } from 'lucide-react';
 import { useFinanceiro, FinancialPeriod } from '@/hooks/useFinanceiro';
 import { useSalon } from '@/hooks/useSalon';
 import { usePlan } from '@/hooks/usePlan';
+import { useUnits } from '@/hooks/useUnits';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -56,13 +58,40 @@ export function FinanceiroPage() {
     exportToCSV,
   } = useFinanceiro();
 
+  const [searchParams] = useSearchParams();
+  const { units } = useUnits();
+  const hasMultiUnits = can('multi_unidades');
+  const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>(() => searchParams.get('unit') || 'all');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStaffFilter, setSelectedStaffFilter] = useState<string>('all');
   const [isCustomOpen, setIsCustomOpen] = useState(false);
   const [tempStartDate, setTempStartDate] = useState(customStartDateStr);
   const [tempEndDate, setTempEndDate] = useState(customEndDateStr);
 
-  // Filtragem dos agendamentos concluídos por busca e profissional
+  // Faturamento segregado por unidade (recurso exclusivo Premium)
+  const unitBreakdown = useMemo(() => {
+    if (!hasMultiUnits) return [];
+    return units.map((u) => {
+      const apts = completedAppointments.filter((a) => a.unit_id === u.id);
+      const gross = apts.reduce((acc, a) => acc + (a.payment_amount || a.price || 0), 0);
+      const commissions = apts.reduce((acc, a) => {
+        const staff = staffCommissions.find((s) => s.staff_id === a.professional_id);
+        const rate = staff?.commission_rate || 40;
+        return acc + ((a.payment_amount || a.price || 0) * rate) / 100;
+      }, 0);
+      const net = gross - commissions;
+      return {
+        unit: u,
+        count: apts.length,
+        gross,
+        commissions,
+        net,
+      };
+    });
+  }, [hasMultiUnits, units, completedAppointments, staffCommissions]);
+
+  // Filtragem dos agendamentos concluídos por busca, profissional e unidade
   const filteredAppointments = useMemo(() => {
     return completedAppointments.filter((apt) => {
       const matchSearch =
@@ -77,9 +106,34 @@ export function FinanceiroPage() {
         apt.professional_id === selectedStaffFilter ||
         apt.professional_name.toLowerCase() === selectedStaffFilter.toLowerCase();
 
-      return matchSearch && matchStaff;
+      const matchUnit =
+        !hasMultiUnits ||
+        selectedUnitFilter === 'all' ||
+        apt.unit_id === selectedUnitFilter;
+
+      return matchSearch && matchStaff && matchUnit;
     });
-  }, [completedAppointments, searchTerm, selectedStaffFilter]);
+  }, [completedAppointments, searchTerm, selectedStaffFilter, hasMultiUnits, selectedUnitFilter]);
+
+  const displayedGross = useMemo(() => {
+    if (hasMultiUnits && selectedUnitFilter !== 'all') {
+      return filteredAppointments.reduce((sum, a) => sum + (a.payment_amount || a.price || 0), 0);
+    }
+    return grossRevenue;
+  }, [hasMultiUnits, selectedUnitFilter, filteredAppointments, grossRevenue]);
+
+  const displayedCommissions = useMemo(() => {
+    if (hasMultiUnits && selectedUnitFilter !== 'all') {
+      return filteredAppointments.reduce((sum, a) => {
+        const staff = staffCommissions.find((s) => s.staff_id === a.professional_id);
+        const rate = staff?.commission_rate || 40;
+        return sum + ((a.payment_amount || a.price || 0) * rate) / 100;
+      }, 0);
+    }
+    return totalCommissions;
+  }, [hasMultiUnits, selectedUnitFilter, filteredAppointments, staffCommissions, totalCommissions]);
+
+  const displayedNet = displayedGross - displayedCommissions;
 
   const handleApplyCustomRange = (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,6 +245,53 @@ export function FinanceiroPage() {
         </div>
       </div>
 
+      {/* Seletor de Unidades (Apenas Plano Premium) */}
+      {hasMultiUnits && units.length > 0 && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Visão por Unidade / Filial</h3>
+              <p className="text-xs text-slate-500">
+                Alterne entre faturamento consolidado ou segregado por filial
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <button
+              type="button"
+              onClick={() => setSelectedUnitFilter('all')}
+              className={cn(
+                'px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer',
+                selectedUnitFilter === 'all'
+                  ? 'bg-slate-900 text-amber-400 shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              )}
+            >
+              Consolidado (Todas)
+            </button>
+            {units.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => setSelectedUnitFilter(u.id)}
+                className={cn(
+                  'px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer',
+                  selectedUnitFilter === u.id
+                    ? 'bg-slate-900 text-amber-400 shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                )}
+              >
+                {u.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Modal/Accordion de Seleção Customizada de Datas */}
       <AnimatePresence>
         {isCustomOpen && (
@@ -262,11 +363,15 @@ export function FinanceiroPage() {
           </div>
           <div className="mt-3">
             <div className="text-2xl sm:text-3xl font-bold font-luxury text-slate-900 tracking-tight">
-              {formatCurrency(grossRevenue)}
+              {formatCurrency(displayedGross)}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
               <Receipt className="w-3.5 h-3.5 text-amber-600" />
-              <span>{completedAppointmentsCount} atendimentos concluídos</span>
+              <span>
+                {hasMultiUnits && selectedUnitFilter !== 'all'
+                  ? `${filteredAppointments.length} atendimentos na unidade`
+                  : `${completedAppointmentsCount} atendimentos concluídos`}
+              </span>
             </div>
           </div>
         </motion.div>
@@ -295,7 +400,7 @@ export function FinanceiroPage() {
           </div>
           <div className="mt-3">
             <div className="text-2xl sm:text-3xl font-bold font-luxury text-rose-600 tracking-tight">
-              {canCommissions ? formatCurrency(totalCommissions) : 'Bloqueado'}
+              {canCommissions ? formatCurrency(displayedCommissions) : 'Bloqueado'}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-rose-600/80 font-medium">
               <ArrowDownRight className="w-3.5 h-3.5" />
@@ -321,11 +426,14 @@ export function FinanceiroPage() {
           </div>
           <div className="mt-3">
             <div className="text-2xl sm:text-3xl font-bold font-luxury text-emerald-600 tracking-tight">
-              {formatCurrency(netRevenue)}
+              {formatCurrency(displayedNet)}
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
               <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>Margem líquida de {salonMarginPercent}%</span>
+              <span>
+                Margem líquida de{' '}
+                {displayedGross > 0 ? ((displayedNet / displayedGross) * 100).toFixed(0) : '0'}%
+              </span>
             </div>
           </div>
         </motion.div>
@@ -356,6 +464,83 @@ export function FinanceiroPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* SEÇÃO MULTI-UNIDADES: Faturamento Segregado por Filial (Exclusivo Premium) */}
+      {hasMultiUnits && units.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-white via-amber-50/20 to-white">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-amber-600" />
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 font-luxury">
+                  Faturamento Segregado por Filial
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500">
+                Acompanhe o faturamento bruto, custos com comissões e margem líquida de cada ponto físico.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+              {units.length} unidade(s) cadastradas
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+            {unitBreakdown.map((item) => {
+              const isSelected = selectedUnitFilter === item.unit.id;
+              return (
+                <div
+                  key={item.unit.id}
+                  className={cn(
+                    'p-4 rounded-xl border transition-all',
+                    isSelected
+                      ? 'border-amber-500 bg-amber-50/30 ring-2 ring-amber-500/20'
+                      : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Store className="w-4 h-4 text-amber-600" />
+                        <h3 className="text-sm font-bold text-slate-900">{item.unit.name}</h3>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">{item.unit.address}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedUnitFilter(isSelected ? 'all' : item.unit.id)}
+                      className="text-[11px] font-semibold text-amber-700 hover:underline cursor-pointer"
+                    >
+                      {isSelected ? 'Ver Todas' : 'Filtrar'}
+                    </button>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-slate-200/60 grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-500 uppercase">Bruto</p>
+                      <p className="text-xs font-bold text-slate-900 mt-0.5">{formatCurrency(item.gross)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-500 uppercase">Comissões</p>
+                      <p className="text-xs font-bold text-rose-600 mt-0.5">{formatCurrency(item.commissions)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-500 uppercase">Líquido</p>
+                      <p className="text-xs font-bold text-emerald-600 mt-0.5">{formatCurrency(item.net)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 text-right">
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {item.count} atendimento(s) concluído(s)
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* SEÇÃO 1: Comissões e Produtividade por Profissional */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">

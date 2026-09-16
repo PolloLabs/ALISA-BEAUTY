@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   DollarSign,
@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Scissors,
   Armchair,
+  Building2,
 } from 'lucide-react'
 import { useSalon } from '../context/SalonContext'
 import { Card } from '../components/ui/Card'
@@ -25,6 +26,8 @@ import { AccountManagerCard } from '../components/common/AccountManagerCard'
 import { formatCurrency, formatDateFull } from '@/lib/formatters'
 import { cn, safeStorageGet } from '../lib/utils'
 import { Appointment } from '../types'
+import { usePlan } from '@/hooks/usePlan'
+import { useUnits } from '@/hooks/useUnits'
 
 export interface DashboardProps {
   className?: string
@@ -34,12 +37,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
   const navigate = useNavigate()
   const { appointments, updateAppointmentStatus } = useSalon()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const { can } = usePlan()
+  const { units } = useUnits()
+  const hasMultiUnits = can('multi_unidades')
+  const [selectedUnitId, setSelectedUnitId] = useState<string>('all')
 
   const todayStr = new Date().toISOString().split('T')[0]
   const currentDateFormatted = formatDateFull(new Date())
 
+  // Filtragem segregada por Unidade se plano for Premium
+  const filteredAppointments = useMemo(() => {
+    if (!hasMultiUnits || selectedUnitId === 'all') return appointments
+    return appointments.filter((a) => a.unit_id === selectedUnitId)
+  }, [appointments, hasMultiUnits, selectedUnitId])
+
   // Atendimentos e Faturamento reais
-  const todayAppointments = appointments.filter(
+  const todayAppointments = filteredAppointments.filter(
     (a) => a.date === todayStr && a.status !== 'cancelado' && a.status !== 'canceled'
   )
   const todayRevenue = todayAppointments.reduce((acc, a) => acc + (a.price || 0), 0)
@@ -52,7 +65,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     (a) => a.status === 'pendente' || a.status === 'pending'
   ).length
 
-  const canceledCount = appointments.filter(
+  const canceledCount = filteredAppointments.filter(
     (a) => (a.status === 'cancelado' || a.status === 'canceled') && a.date === todayStr
   ).length
 
@@ -61,7 +74,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ className }) => {
   ).length
 
   const currentYearMonth = todayStr.substring(0, 7)
-  const monthRevenue = appointments
+  const monthRevenue = filteredAppointments
     .filter((a) => {
       const aDate = a.date || (a.start_time ? a.start_time.split('T')[0] : '')
       const notCanceled = a.status !== 'cancelado' && a.status !== 'canceled'
@@ -98,7 +111,7 @@ const appointmentStatusData: DonutCategory[] = [
   ]
 
   // Próximos atendimentos para a lista inferior
-  const upcomingAppointments = appointments
+  const upcomingAppointments = filteredAppointments
     .filter(
       (a) =>
         (a.date ? a.date >= todayStr : true) &&
@@ -173,7 +186,25 @@ const appointmentStatusData: DonutCategory[] = [
               {currentDateFormatted}
             </p>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {hasMultiUnits && units.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-700">
+                <Building2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span className="font-semibold text-slate-600 hidden sm:inline">Unidade:</span>
+                <select
+                  value={selectedUnitId}
+                  onChange={(e) => setSelectedUnitId(e.target.value)}
+                  className="bg-transparent border-0 text-slate-900 font-semibold focus:outline-none focus:ring-0 cursor-pointer"
+                >
+                  <option value="all">Todas as Unidades (Consolidado)</option>
+                  {units.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"

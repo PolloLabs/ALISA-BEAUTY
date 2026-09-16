@@ -29,9 +29,11 @@ export interface FinancialAppointment {
   date: string;
   time: string;
   price: number;
+  payment_amount?: number;
   commission_rate: number;
   commission_amount: number;
   net_amount: number;
+  unit_id?: string;
 }
 
 export interface StaffCommission {
@@ -321,9 +323,11 @@ export function useFinanceiro(): UseFinanceiroReturn {
         date: dateStr,
         time: apt.time || (apt.start_time ? apt.start_time.substring(11, 16) : '00:00'),
         price,
+        payment_amount: typeof apt.payment_amount === 'number' ? apt.payment_amount : price,
         commission_rate: commissionRate,
         commission_amount: commissionAmount,
         net_amount: netAmount,
+        unit_id: apt.unit_id,
       };
     });
 

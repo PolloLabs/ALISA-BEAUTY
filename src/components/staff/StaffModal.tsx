@@ -48,6 +48,7 @@ export function StaffModal({ isOpen, onClose, staff, onSave }: StaffModalProps) 
                 email: staff.email || '',
                 job_title: staff.job_title || 'Cabeleireiro(a)',
                 commission_rate: staff.commission_rate,
+                unit_ids: staff.unit_ids || [],
               }
             : undefined
         }

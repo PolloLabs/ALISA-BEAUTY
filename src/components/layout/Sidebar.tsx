@@ -83,6 +83,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { to: '/campanhas', label: 'Campanhas', icon: MessageSquare },
         { to: '/servicos', label: 'Serviços', icon: Scissors },
         { to: '/financeiro', label: 'Financeiro', icon: DollarSign },
+        ...(can('multi_unidades') ? [{ to: '/unidades', label: 'Unidades', icon: Building2 }] : []),
         { to: '/equipe', label: 'Equipe', icon: UserCheck },
         { to: '/configuracoes/salao', label: 'Configurações', icon: Settings },
       ]
