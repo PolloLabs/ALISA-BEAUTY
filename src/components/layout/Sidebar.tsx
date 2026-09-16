@@ -120,7 +120,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div className="min-w-0 flex-1">
               <span className="font-luxury font-bold text-slate-900 block truncate text-base tracking-tight leading-none">
-              {role === 'super_admin' ? 'ALISA BEAUTY' : salon?.name || 'Studio BelezaFlow'}
+              {role === 'super_admin' ? 'ALISA BEAUTY' : salon?.name || 'Meu Salão'}
               </span>
               <span className="text-[10px] uppercase tracking-widest text-amber-600 font-semibold mt-1 block">
                 {role === 'super_admin' ? 'Super Admin' : role === 'employee' ? 'Espaço Profissional' : 'Gestão do Salão'}
